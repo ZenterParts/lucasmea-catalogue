@@ -19,7 +19,7 @@ a{color:var(--lucas-green);}
 .lucas-bar nav a.current{background:rgba(255,255,255,0.18);}
 .lucas-bar nav b{background:#fff; color:var(--lucas-green); border-radius:20px; padding:2px 8px 0; margin-left:6px; font-size:0.85rem;}
 
-.pagehead{background:var(--lucas-grey-light); padding:40px 0 36px; margin-top:19px;}
+.pagehead{background:var(--lucas-grey-light); padding:40px 0 36px;}
 .pagehead h1{font-weight:700; font-size:clamp(1.8rem,4vw,2.5rem); line-height:1.1; margin-bottom:8px;}
 .pagehead p{margin:0; max-width:680px;}
 
@@ -105,11 +105,9 @@ footer .bar{height:24px; background:var(--lucas-green);}
 <body>
 <header class="lucas-bar">
   <a href="/" aria-label="Lucas online catalogues home"><img class="lucas-logo" src="/assets/lucas-logo.png" alt="Lucas"></a>
-  <nav aria-label="Main">
-    <a href="/">Catalogues</a>
-    <a href="/cart/" class="current" aria-current="page">Cart<b data-cart-count>0</b></a>
-  </nav>
+  <span class="bar-title">Online Catalogues</span>
 </header>
+<div id="site-nav" style="min-height:60px;background:#000"></div>
 
 <div id="app">
   <section class="pagehead">
@@ -166,6 +164,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
 </footer>
 
 <script src="/assets/cart.js"></script>
+<script src="/assets/site-nav.js"></script>
 <script src="/assets/rfq-excel.js"></script>
 <script src="/assets/rfq-link.js"></script>
 <script>
