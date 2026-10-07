@@ -16,10 +16,6 @@
     ] },
     { brand: 'Girling', anchor: 'girling', items: [
       { name: 'Batteries' }
-    ] },
-    { brand: 'Stravik', anchor: 'stravik', items: [
-      { name: 'Braking System' },
-      { name: 'Steering & Suspension' }
     ] }
   ];
   var ABOUT_URL = 'https://www.lucasmeaparts.com/about-us';
@@ -36,7 +32,7 @@
     '.snav .dd{position:relative}',
     '.snav .menu{display:none;position:absolute;top:calc(100% + 8px);left:0;min-width:230px;background:#fff;border-top:4px solid #00954C;box-shadow:0 12px 32px rgba(0,0,0,.25);padding:8px 0;z-index:60}',
     '.snav .dd.open .menu{display:block}',
-    '.snav .menu.wide{min-width:660px;display:none;grid-template-columns:repeat(3,1fr);gap:0 8px;padding:12px 8px;left:auto;right:0}',
+    '.snav .menu.wide{min-width:440px;display:none;grid-template-columns:repeat(2,1fr);gap:0 8px;padding:12px 8px;left:auto;right:0}',
     '.snav .dd.open .menu.wide{display:grid}',
     '.snav .menu a{display:flex;justify-content:space-between;white-space:nowrap;color:#231F20;text-transform:none;letter-spacing:0;font-size:15px;padding:8px 16px 6px;border-radius:0;border:0}',
     '.snav .menu a:hover{background:#e6f4ed;color:#00954C}',

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lucas MEA Online Catalogues | Lucas, Girling, Stravik</title>
-<meta name="description" content="Online parts catalogues for Lucas, Girling and Stravik. Search by part number, vehicle, OE number or cross-reference and request a price.">
+<title>Lucas MEA Online Catalogues | Lucas and Girling</title>
+<meta name="description" content="Online parts catalogues for Lucas and Girling. Search by part number, vehicle, OE number or cross-reference and request a price.">
 <link rel="icon" type="image/png" href="assets/icon-gas-springs.png">
 <link rel="stylesheet" href="assets/lucas-brand.css">
 <style>
@@ -32,25 +32,20 @@ h1,h2,h3{font-family:var(--lucas-font); color:var(--lucas-green); margin:0;}
 .brands-head{padding-top:44px; padding-bottom:18px;}
 .brands-head h1{color:var(--lucas-black); font-weight:700; font-size:clamp(2rem,4vw,2.6rem); line-height:1.1; margin-bottom:6px;}
 .brands-head p{margin:0; color:var(--lucas-black); font-size:1rem;}
-.brands{display:grid; grid-template-columns:repeat(3,1fr); gap:0; padding:0;}
+.brands{display:grid; grid-template-columns:repeat(2,1fr); gap:0; padding:0;}
 .brand{--fg:#fff; --soft:rgba(255,255,255,.82); color:var(--fg); padding:28px 26px 30px; display:flex; flex-direction:column; scroll-margin-top:72px;}
 .brand.lucas{background:#00954C;}
 .brand.girling{background:#001A5C;}
-.brand.stravik{background:#8a6326;}
 .brand hr{border:0; border-top:1px solid rgba(255,255,255,.7); margin:0 0 22px; width:100%;}
 .brand .logo{height:86px; display:flex; align-items:center; margin-bottom:14px;}
 .brand.lucas .logo img{height:50px; width:auto; margin-left:-26px;}
 .brand.girling .logo img{height:72px; width:auto; border-radius:4px;}
-.brand .tile{display:inline-flex; align-items:center; gap:12px; background:#fff; border-radius:4px; padding:9px 16px;}
-.brand .tile img:first-child{height:54px; width:auto;}
-.brand .tile img:last-child{height:18px; width:auto;}
 .brand h2{color:var(--fg); font-weight:700; font-size:1.15rem; margin:0 0 6px;}
 .brand .about{margin:0 0 20px; color:var(--soft); font-size:0.98rem; line-height:1.45;}
 .brand h3{color:var(--fg); font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; margin:0 0 8px; opacity:.85;}
 .cats{list-style:none; margin:0 0 22px; padding:0; display:grid; gap:8px;}
 .cats a, .cats li > div{display:flex; align-items:center; gap:12px; background:#fff; color:var(--lucas-black); text-decoration:none; padding:8px 14px 8px 8px; border-radius:4px; min-height:62px;}
-.cats img, .cats svg{width:46px; height:46px; flex-shrink:0; background:#fff;}
-.cats svg{fill:none; stroke:#8a6326; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+.cats img{width:46px; height:46px; flex-shrink:0; background:#fff;}
 .cats span{flex:1; min-width:0; line-height:1.25;}
 .cats b{display:block; font-weight:600; font-size:1rem;}
 .cats small{display:block; color:var(--lucas-grey); font-size:0.82rem; margin-top:2px;}
@@ -58,7 +53,7 @@ h1,h2,h3{font-family:var(--lucas-font); color:var(--lucas-green); margin:0;}
 .cats a:hover{box-shadow:0 0 0 3px rgba(255,255,255,.45);}
 .cats a:hover b{color:var(--lucas-green);}
 .cats .soon > div{background:rgba(255,255,255,.88);}
-.cats .soon img, .cats .soon svg{opacity:.55;}
+.cats .soon img{opacity:.55;}
 .cats em{font-style:normal; font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--lucas-grey); background:#ededed; border-radius:3px; padding:3px 7px 1px; white-space:nowrap;}
 .brand .more{margin-top:auto; align-self:flex-start; background:#fff; color:var(--lucas-black); font-weight:600; text-decoration:none; padding:11px 24px 9px; border-radius:2px;}
 .brand .more:hover{background:#f0f0f0;}
@@ -132,19 +127,6 @@ footer .bar{height:24px; background:var(--lucas-green);}
         <li class="soon"><div><img src="assets/icon-batteries.png" alt=""><span><b>Batteries</b><small>Starter batteries</small></span><em>Coming soon</em></div></li>
       </ul>
       <a class="more" href="https://www.lucasmeaparts.com/girling" target="_blank" rel="noopener">Learn more</a>
-    </article>
-
-    <article class="brand stravik" id="stravik" aria-labelledby="b-stravik">
-      <hr>
-      <div class="logo"><span class="tile"><img src="assets/stravik-mark.webp" alt="" width="60" height="54"><img src="assets/stravik-wordmark.webp" alt="Stravik" width="174" height="18"></span></div>
-      <h2 id="b-stravik">About Stravik</h2>
-      <p class="about">Stravik supplies braking system and steering and suspension parts: brake pads in ceramic, semi-metallic and low-metallic compounds, and a steering and suspension range from shock absorbers and control arms to tie rod ends and bushings.</p>
-      <h3>Catalogues</h3>
-      <ul class="cats">
-        <li class="soon"><div><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19"/><circle cx="24" cy="24" r="7"/><circle cx="24" cy="12" r="1.6"/><circle cx="34.4" cy="18" r="1.6"/><circle cx="34.4" cy="30" r="1.6"/><circle cx="24" cy="36" r="1.6"/><circle cx="13.6" cy="30" r="1.6"/><circle cx="13.6" cy="18" r="1.6"/><path d="M8 13a19 19 0 0 1 9-7"/></svg><span><b>Braking System</b><small>Ceramic, semi-metallic, low-metallic</small></span><em>Coming soon</em></div></li>
-        <li class="soon"><div><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="6" r="3"/><circle cx="24" cy="42" r="3"/><path d="M24 9v6M24 33v6M17 15h14M17 33h14M19 15l10 3.6-10 3.6 10 3.6-10 3.6 10 3.6"/></svg><span><b>Steering &amp; Suspension</b><small>Shocks, arms, tie rods, bushings</small></span><em>Coming soon</em></div></li>
-      </ul>
-      <a class="more" href="https://stravikautomotiveparts.com" target="_blank" rel="noopener">Learn more</a>
     </article>
 
   </section>
