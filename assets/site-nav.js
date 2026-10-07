@@ -12,7 +12,7 @@
       { name: 'Horns', href: '/horns/' },
       { name: 'Bulbs', href: '/bulbs/' },
       { name: 'Filters' },
-      { name: 'Wiper Blades' }
+      { name: 'Wiper Blades', href: '/wiper-blades/' }
     ] },
     { brand: 'Girling', anchor: 'girling', items: [
       { name: 'Batteries' }
