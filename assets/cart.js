@@ -36,7 +36,7 @@
 
   /* One-line description used everywhere (cart, emails, Excel): catalogues may set it.desc;
      otherwise it is built from the catalogue name plus make / application. */
-  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Filters': 'Filter', 'Batteries': 'Battery' };
+  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Oil Filters': 'Oil filter', 'Air Filters': 'Air filter', 'Filters': 'Filter', 'Batteries': 'Battery' };
   function describe(it) {
     if (!it) return '';
     if (it.desc) return String(it.desc);
@@ -102,106 +102,25 @@
     '.lc-toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.2s;z-index:10000;',
     ' background:#00954C;color:#fff;padding:12px 18px 10px;border-radius:6px;font-family:"League Spartan",Arial,sans-serif;font-weight:600;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none;max-width:calc(100vw - 32px);text-align:center}',
     '.lc-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}',
+    '@media print{.lc-sel,.lc-bar,.lc-toast{display:none!important}}',
     '@media (max-width:600px){.lc-bar{right:8px;left:8px;bottom:8px;max-width:none}.lc-pick{flex:1;justify-content:space-between}.lc-btn{font-size:14px}}'
   ].join('\n');
 
   function text(el) { return el ? (el.textContent || '').trim() : ''; }
 
+  /* Pages with one parts table: the first table (or #resultsBody) gets tick boxes.
+     Pages with several tables that appear and change as people search (vehicle list,
+     part list, one table per filter type…): add data-tables="all" to the script tag and
+     every table outside a dialog with .part-no rows gets tick boxes. */
   function enhanceCatalogue() {
-    var tbody = document.getElementById('resultsBody') || document.querySelector('table tbody');
-    if (!tbody) return;
-    var table = tbody.closest('table');
-    var headRow = table && table.querySelector('thead tr');
-    if (!headRow) return;
+    var ALL = !!(script && script.getAttribute('data-tables') === 'all');
+    var first = document.getElementById('resultsBody') || document.querySelector('table tbody');
+    if (!ALL && !first) return;
 
     var style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
 
-    // map column names before inserting our column
-    var heads = Array.prototype.map.call(headRow.children, function (th) { return text(th).toLowerCase(); });
-    // Readable column labels for the Excel sheet, e.g. "Length (mm)", "Rod Ø (mm)"
-    var labels = Array.prototype.map.call(headRow.children, function (th) {
-      var c = th.cloneNode(true);
-      Array.prototype.forEach.call(c.querySelectorAll('.key,[aria-hidden="true"]'), function (k) { k.remove(); });
-      Array.prototype.forEach.call(c.querySelectorAll('small'), function (sm) { var u = text(sm); sm.textContent = u ? ' (' + u + ')' : ''; });
-      return text(c).replace(/\s+/g, ' ');
-    });
-    function col(re) { for (var i = 0; i < heads.length; i++) if (re.test(heads[i])) return i; return -1; }
-    var cMake = col(/^make/), cApp = col(/applic/), cOe = col(/^oe/);
-
     var selected = {}; // no -> item
-
-    var thSel = document.createElement('th');
-    thSel.className = 'lc-sel';
-    thSel.innerHTML = '<input type="checkbox" aria-label="Select all parts shown" title="Select all parts shown">';
-    headRow.insertBefore(thSel, headRow.firstChild);
-    var allBox = thSel.querySelector('input');
-
-    function rowItem(tr) {
-      var cells = tr.children, off = tr.__lcOff || 0;
-      function c(i) { return i < 0 ? '' : text(cells[i + off]); }
-      var details = [];
-      for (var i = 0; i < labels.length; i++) { if (labels[i]) details.push([labels[i], c(i)]); }
-      var item = { no: tr.__lcNo, catalogue: CATALOGUE, make: c(cMake), app: c(cApp), oe: c(cOe), details: details };
-      // Optional: a catalogue page can describe its own parts for the cart and Excel sheet
-      // by defining window.LucasCartDescribe(partNo) -> { make, app, oe, details }.
-      if (typeof window.LucasCartDescribe === 'function') {
-        try { var extra = window.LucasCartDescribe(tr.__lcNo); if (extra) for (var k in extra) if (extra[k] != null) item[k] = extra[k]; } catch (e) {}
-      }
-      return item;
-    }
-
-    function paint(tr) {
-      var box = tr.__lcBox; if (!box) return;
-      var inCart = api.has(tr.__lcNo, CATALOGUE);
-      box.disabled = inCart;
-      box.checked = inCart || !!selected[tr.__lcNo];
-      box.title = inCart ? 'Already in your cart' : 'Select ' + tr.__lcNo;
-      tr.classList.toggle('lc-incart', inCart);
-      tr.classList.toggle('lc-picked', !inCart && !!selected[tr.__lcNo]);
-      var tag = tr.__lcTag;
-      if (inCart && !tag) { tag = document.createElement('span'); tag.className = 'lc-incart-tag'; tag.textContent = 'IN CART'; box.parentNode.appendChild(tag); tr.__lcTag = tag; }
-      if (!inCart && tag) { tag.remove(); tr.__lcTag = null; }
-    }
-
-    function enhanceRow(tr) {
-      if (tr.__lcBox || tr.parentNode !== tbody) return;
-      var pn = tr.querySelector('.part-no');
-      if (!pn) return;
-      tr.__lcNo = text(pn);
-      var td = document.createElement('td');
-      td.className = 'lc-sel';
-      td.innerHTML = '<input type="checkbox">';
-      tr.insertBefore(td, tr.firstChild);
-      tr.__lcOff = 1;
-      var box = td.querySelector('input');
-      box.setAttribute('aria-label', 'Select ' + tr.__lcNo);
-      tr.__lcBox = box;
-      box.addEventListener('change', function () {
-        if (box.checked) selected[tr.__lcNo] = rowItem(tr); else delete selected[tr.__lcNo];
-        paint(tr); refreshBar();
-      });
-      paint(tr);
-    }
-
-    function rows() { return Array.prototype.filter.call(tbody.children, function (tr) { return tr.__lcBox; }); }
-    function enhanceAll() { Array.prototype.forEach.call(tbody.children, enhanceRow); syncAll(); }
-    function syncAll() {
-      var rs = rows(), selectable = rs.filter(function (tr) { return !tr.__lcBox.disabled; });
-      allBox.checked = selectable.length > 0 && selectable.every(function (tr) { return selected[tr.__lcNo]; });
-      allBox.indeterminate = !allBox.checked && selectable.some(function (tr) { return selected[tr.__lcNo]; });
-    }
-
-    allBox.addEventListener('change', function () {
-      rows().forEach(function (tr) {
-        if (tr.__lcBox.disabled) return;
-        if (allBox.checked) selected[tr.__lcNo] = rowItem(tr); else delete selected[tr.__lcNo];
-        paint(tr);
-      });
-      refreshBar();
-    });
-
-    new MutationObserver(enhanceAll).observe(tbody, { childList: true });
-    enhanceAll();
+    var bodies = [];   // every table body that has tick boxes
 
     // bar
     var bar = document.createElement('div');
@@ -220,11 +139,139 @@
     var tt;
     function say(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function () { toast.classList.remove('show'); }, 2600); }
 
+    function liveBodies() { bodies = bodies.filter(function (b) { return b.isConnected; }); return bodies; }
+    function rows() {
+      var out = [];
+      liveBodies().forEach(function (b) { Array.prototype.forEach.call(b.children, function (tr) { if (tr.__lcBox) out.push(tr); }); });
+      return out;
+    }
+
+    function paint(tr) {
+      var box = tr.__lcBox; if (!box) return;
+      var inCart = api.has(tr.__lcNo, CATALOGUE);
+      box.disabled = inCart;
+      box.checked = inCart || !!selected[tr.__lcNo];
+      box.title = inCart ? 'Already in your cart' : 'Select ' + tr.__lcNo;
+      tr.classList.toggle('lc-incart', inCart);
+      tr.classList.toggle('lc-picked', !inCart && !!selected[tr.__lcNo]);
+      var tag = tr.__lcTag;
+      if (inCart && !tag) { tag = document.createElement('span'); tag.className = 'lc-incart-tag'; tag.textContent = 'IN CART'; box.parentNode.appendChild(tag); tr.__lcTag = tag; }
+      if (!inCart && tag) { tag.remove(); tr.__lcTag = null; }
+    }
+
+    function syncAll() { liveBodies().forEach(function (b) { if (b.__lcSync) b.__lcSync(); }); }
     function refreshBar() {
       var n = Object.keys(selected).length;
       nEl.textContent = n; pick.classList.toggle('show', n > 0);
       syncAll();
     }
+
+    function enhanceTable(tbody) {
+      if (!tbody || tbody.__lcDone) return;
+      var table = tbody.closest('table');
+      var headRow = table && table.querySelector('thead tr');
+      if (!headRow) return;
+      tbody.__lcDone = true;
+      bodies.push(tbody);
+
+      // map column names before inserting our column
+      var heads = Array.prototype.map.call(headRow.children, function (th) { return text(th).toLowerCase(); });
+      // Readable column labels for the Excel sheet, e.g. "Length (mm)", "Rod Ø (mm)"
+      var labels = Array.prototype.map.call(headRow.children, function (th) {
+        var c = th.cloneNode(true);
+        Array.prototype.forEach.call(c.querySelectorAll('.key,[aria-hidden="true"]'), function (k) { k.remove(); });
+        Array.prototype.forEach.call(c.querySelectorAll('small'), function (sm) { var u = text(sm); sm.textContent = u ? ' (' + u + ')' : ''; });
+        return text(c).replace(/\s+/g, ' ');
+      });
+      function col(re) { for (var i = 0; i < heads.length; i++) if (re.test(heads[i])) return i; return -1; }
+      var cMake = col(/^make/), cApp = col(/applic/), cOe = col(/^oe/);
+
+      // keep fixed column widths lined up when the table has a <colgroup>
+      var cg = table.querySelector('colgroup');
+      if (cg) { var c0 = document.createElement('col'); c0.style.width = '44px'; cg.insertBefore(c0, cg.firstChild); }
+
+      var thSel = document.createElement('th');
+      thSel.className = 'lc-sel';
+      thSel.innerHTML = '<input type="checkbox" aria-label="Select all parts shown" title="Select all parts shown">';
+      headRow.insertBefore(thSel, headRow.firstChild);
+      var allBox = thSel.querySelector('input');
+
+      function rowItem(tr) {
+        var cells = tr.children, off = tr.__lcOff || 0;
+        function c(i) { return i < 0 ? '' : text(cells[i + off]); }
+        var details = [];
+        for (var i = 0; i < labels.length; i++) { if (labels[i]) details.push([labels[i], c(i)]); }
+        var item = { no: tr.__lcNo, catalogue: CATALOGUE, make: c(cMake), app: c(cApp), oe: c(cOe), details: details };
+        // Optional: a catalogue page can describe its own parts for the cart and Excel sheet
+        // by defining window.LucasCartDescribe(partNo) -> { desc, make, app, oe, details }.
+        if (typeof window.LucasCartDescribe === 'function') {
+          try { var extra = window.LucasCartDescribe(tr.__lcNo); if (extra) for (var k in extra) if (extra[k] != null) item[k] = extra[k]; } catch (e) {}
+        }
+        return item;
+      }
+
+      function enhanceRow(tr) {
+        if (tr.__lcBox || tr.__lcGrp || tr.parentNode !== tbody) return;
+        var pn = tr.querySelector('.part-no');
+        if (!pn) {
+          // group heading rows (one cell spanning the table) stretch over the new column
+          if (tr.children.length === 1 && tr.children[0].colSpan > 1) { tr.children[0].colSpan += 1; tr.__lcGrp = true; }
+          return;
+        }
+        tr.__lcNo = text(pn);
+        var td = document.createElement('td');
+        td.className = 'lc-sel';
+        td.innerHTML = '<input type="checkbox">';
+        // ticking a box must not trigger the row's own click (e.g. opening the part details)
+        td.addEventListener('click', function (e) { e.stopPropagation(); });
+        tr.insertBefore(td, tr.firstChild);
+        tr.__lcOff = 1;
+        var box = td.querySelector('input');
+        box.setAttribute('aria-label', 'Select ' + tr.__lcNo);
+        tr.__lcBox = box;
+        box.addEventListener('change', function () {
+          if (box.checked) selected[tr.__lcNo] = rowItem(tr); else delete selected[tr.__lcNo];
+          if (ALL) rows().forEach(paint); else paint(tr);
+          refreshBar();
+        });
+        paint(tr);
+      }
+
+      function tableRows() { return Array.prototype.filter.call(tbody.children, function (tr) { return tr.__lcBox; }); }
+      function sync() {
+        var selectable = tableRows().filter(function (tr) { return !tr.__lcBox.disabled; });
+        allBox.checked = selectable.length > 0 && selectable.every(function (tr) { return selected[tr.__lcNo]; });
+        allBox.indeterminate = !allBox.checked && selectable.some(function (tr) { return selected[tr.__lcNo]; });
+      }
+      tbody.__lcSync = sync;
+      function enhanceAll() { Array.prototype.forEach.call(tbody.children, enhanceRow); sync(); }
+
+      allBox.addEventListener('change', function () {
+        tableRows().forEach(function (tr) {
+          if (tr.__lcBox.disabled) return;
+          if (allBox.checked) selected[tr.__lcNo] = rowItem(tr); else delete selected[tr.__lcNo];
+        });
+        if (ALL) rows().forEach(paint); else tableRows().forEach(paint);
+        refreshBar();
+      });
+
+      new MutationObserver(enhanceAll).observe(tbody, { childList: true });
+      enhanceAll();
+    }
+
+    if (ALL) {
+      var scan = function () {
+        Array.prototype.forEach.call(document.querySelectorAll('table'), function (t) {
+          if (t.closest('dialog') || !t.tBodies[0] || t.tBodies[0].__lcDone) return;
+          if (t.tBodies[0].querySelector('.part-no')) enhanceTable(t.tBodies[0]);
+        });
+      };
+      new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+      scan();
+    } else {
+      enhanceTable(first);
+    }
+
     bar.querySelector('.lc-clr').addEventListener('click', function () { selected = {}; rows().forEach(paint); refreshBar(); });
     bar.querySelector('.lc-add').addEventListener('click', function () {
       var list = Object.keys(selected).map(function (k) { return selected[k]; });
@@ -233,6 +280,7 @@
       rows().forEach(paint); refreshBar();
       say(added === 1 ? '1 part added to your cart' : added + ' parts added to your cart');
     });
+    api.say = say;
 
     api.onChange(function () { rows().forEach(function (tr) { if (api.has(tr.__lcNo, CATALOGUE)) delete selected[tr.__lcNo]; paint(tr); }); refreshBar(); });
   }
