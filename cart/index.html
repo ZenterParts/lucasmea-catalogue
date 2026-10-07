@@ -292,7 +292,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
     }).then(function(result){
       var name = v('f-name').split(' ')[0], email = v('f-email');
       cart.clear();
-      thankYou(ref, name, email, items.length, result && result.confirmation, excelBlob);
+      thankYou(ref, name, email, items.length, result && result.confirmation, excelBlob, excelLink);
     }).catch(function(err){
       var href = 'mailto:' + EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(bodyText);
       status.innerHTML = '<b>Your request wasn\'t sent.</b> Check your connection and try again, or <a href="' + href + '">email it to ' + EMAIL + '</a> instead. Your cart has been kept.<br><small>Details: ' + esc(err.message || 'Could not reach the form service') + '</small>';
@@ -330,7 +330,9 @@ footer .bar{height:24px; background:var(--lucas-green);}
   // Start loading the Excel library as soon as someone begins filling in the form
   form.addEventListener('focusin', function once(){ form.removeEventListener('focusin', once); if (window.LucasRFQExcel) LucasRFQExcel.preload().catch(function(){}); });
 
-  function thankYou(ref, name, email, n, confirmed, excelBlob){
+  function thankYou(ref, name, email, n, confirmed, excelBlob, link){
+    // the customer's own copy of the inquiry: same link the sales team gets, shown in customer view
+    var viewLink = link ? link.replace('/rfq/#', '/rfq/?view=customer#').replace(/^https:\/\/lucasmeacatalogue\.com/, location.origin) : '';
     $('app').innerHTML =
       '<div class="wrap"><section class="thanks" aria-labelledby="tyTitle">' +
       '<div class="tick" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>' +
@@ -341,12 +343,18 @@ footer .bar{height:24px; background:var(--lucas-green);}
         (confirmed ? ' We\'ve also emailed you a confirmation with your inquiry number.' : '') +
         ' Please quote this inquiry number in any correspondence.</p>' +
       '<div class="ty-actions">' +
-        (excelBlob ? '<a class="btn outline" id="dlExcel" download="' + esc(LucasRFQExcel.fileName(ref)) + '">Download your parts list (Excel)</a>' : '') +
-        '<a class="btn" href="/">Back to catalogues</a>' +
+        (viewLink ? '<a class="btn" id="viewInq" href="' + esc(viewLink) + '" target="_blank" rel="noopener">View what you ordered</a>' : '') +
+        (excelBlob && !viewLink ? '<a class="btn outline" id="dlExcel" download="' + esc(LucasRFQExcel.fileName(ref)) + '">Download your parts list (Excel)</a>' : '') +
+        '<a class="btn outline" href="/">Back to catalogues</a>' +
       '</div>' +
+      (viewLink ? '<p class="sub" style="margin-top:18px;font-size:.9rem">Keep this link to see your inquiry later: <button type="button" class="linkbtn" id="copyLink">Copy link</button></p>' : '') +
       '</section></div>';
     var h = $('tyTitle'); h.focus(); window.scrollTo(0, 0);
-    if (excelBlob) $('dlExcel').href = URL.createObjectURL(excelBlob);
+    if (excelBlob && !viewLink) $('dlExcel').href = URL.createObjectURL(excelBlob);
+    if (viewLink) $('copyLink').addEventListener('click', function(){
+      var b = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(viewLink) : Promise.reject()).then(function(){ b.textContent = 'Link copied'; }, function(){ window.prompt('Copy this link:', viewLink); });
+    });
     $('copyRef').addEventListener('click', function(){
       var b = this;
       (navigator.clipboard ? navigator.clipboard.writeText(ref) : Promise.reject()).then(function(){ b.textContent = 'Copied'; }, function(){ b.textContent = 'Select and copy'; });

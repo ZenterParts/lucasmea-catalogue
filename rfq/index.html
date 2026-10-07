@@ -45,6 +45,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
 footer .inner{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:22px 24px 26px; max-width:1100px; margin:0 auto; font-size:0.9rem;}
 footer .strapline{font-weight:700; color:var(--lucas-green); font-size:1.2rem;}
 footer .bar{height:24px; background:var(--lucas-green);}
+@media print{ .actions, .note, footer, .lucas-bar{display:none !important;} .pagehead{margin:0; padding:12px 0;} }
 @media (max-width:600px){ body{font-size:16px;} .wrap{padding:0 16px;} .details td:first-child{width:120px;}  }
 </style>
 </head>
@@ -74,6 +75,8 @@ footer .bar{height:24px; background:var(--lucas-green);}
   function pad(n){ return (n < 10 ? '0' : '') + n; }
   function fmt(d){ return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 
+  // ?view=customer: the copy of the inquiry the customer sees (no sales buttons, no contact details table)
+  var CUSTOMER = /[?&]view=customer\b/.test(location.search);
   window.addEventListener('hashchange', function(){ location.reload(); });
   LucasRFQLink.read(location.hash).then(function(req){
     document.title = 'Inquiry ' + req.ref + ' – Lucas';
@@ -82,6 +85,31 @@ footer .bar{height:24px; background:var(--lucas-green);}
       ['Email', req.email ? '<a href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your inquiry ' + req.ref) + '">' + esc(req.email) + '</a>' : '–'],
       ['Phone / WhatsApp', esc(req.phone || '–')], ['Country', esc(req.country || '–')], ['Customer type', esc(req.type || '–')],
       ['Message', esc(req.message || '–').replace(/\n/g, '<br>')]];
+    var partsHtml = req.items.length ? '<section><h2>' + (CUSTOMER ? 'What you asked for' : 'Parts') + '</h2><div class="scroll"><table class="parts"><thead><tr><th>#</th><th>LP No.</th><th>Description</th><th style="text-align:center">Qty</th></tr></thead><tbody>' +
+          req.items.map(function(it, i){
+            return '<tr><td>' + (i + 1) + '</td><td class="no">' + esc(it.no) + '</td><td>' + esc(it.desc || '') + '</td><td class="qty">' + esc(it.qty) + '</td></tr>';
+          }).join('') +
+          '<tr class="total"><td colspan="3" style="text-align:right">Total quantity</td><td class="qty">' + total + '</td></tr></tbody></table></div></section>' : '';
+    if (CUSTOMER) {
+      document.title = 'Your inquiry ' + req.ref + ' – Lucas';
+      var bt = document.querySelector('.bar-title'); if (bt) bt.textContent = 'Your inquiry';
+      app.innerHTML =
+        '<div class="pagehead"><div class="wrap">' +
+          '<div class="eyebrow">Your inquiry number</div>' +
+          '<h1>' + esc(req.ref) + '</h1>' +
+          '<p>Sent ' + esc(fmt(req.date)) + ' · ' + req.items.length + ' line' + (req.items.length === 1 ? '' : 's') + ', ' + total + ' pcs</p>' +
+          '<div class="actions">' +
+            (req.items.length ? '<button class="btn" id="dl" type="button">Download as Excel</button>' : '') +
+            '<button class="btn outline" type="button" onclick="window.print()">Print</button>' +
+          '</div>' +
+          '<p class="note" id="dlNote" style="margin:10px 0 0"></p>' +
+        '</div></div>' +
+        '<div class="wrap">' +
+          '<p style="margin:28px 0 0">Thank you' + (req.name ? ', ' + esc(req.name.split(' ')[0]) : '') + '. A sales agent will contact you shortly. Please quote <b>' + esc(req.ref) + '</b> in any correspondence, or email <a href="mailto:info@lucasmeaparts.com?subject=' + encodeURIComponent('Inquiry ' + req.ref) + '">info@lucasmeaparts.com</a>.</p>' +
+          partsHtml +
+          (req.message ? '<section><h2>Your message</h2><p style="margin:0">' + esc(req.message).replace(/\n/g, '<br>') + '</p></section>' : '') +
+        '</div>';
+    } else
     app.innerHTML =
       '<div class="pagehead"><div class="wrap">' +
         '<div class="eyebrow">Inquiry number</div>' +
@@ -95,11 +123,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
       '</div></div>' +
       '<div class="wrap">' +
         '<section><h2>Customer</h2><table class="details">' + rows.map(function(r){ return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('') + '</table></section>' +
-        (req.items.length ? '<section><h2>Parts</h2><div class="scroll"><table class="parts"><thead><tr><th>#</th><th>LP No.</th><th>Description</th><th style="text-align:center">Qty</th></tr></thead><tbody>' +
-          req.items.map(function(it, i){
-            return '<tr><td>' + (i + 1) + '</td><td class="no">' + esc(it.no) + '</td><td>' + esc(it.desc || '') + '</td><td class="qty">' + esc(it.qty) + '</td></tr>';
-          }).join('') +
-          '<tr class="total"><td colspan="3" style="text-align:right">Total quantity</td><td class="qty">' + total + '</td></tr></tbody></table></div></section>' : '') +
+        partsHtml +
       '</div>';
 
     var btn = document.getElementById('dl'), note = document.getElementById('dlNote');
