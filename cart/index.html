@@ -333,6 +333,8 @@ footer .bar{height:24px; background:var(--lucas-green);}
   function thankYou(ref, name, email, n, confirmed, excelBlob, link){
     // the customer's own copy of the inquiry: same link the sales team gets, shown in customer view
     var viewLink = link ? link.replace('/rfq/#', '/rfq/?view=customer#').replace(/^https:\/\/lucasmeacatalogue\.com/, location.origin) : '';
+    // Excel link for the customer: opens their inquiry and starts the Excel download
+    var excelUrl = viewLink ? viewLink.replace('/rfq/?view=customer#', '/rfq/?view=customer&dl=1#') : '';
     $('app').innerHTML =
       '<div class="wrap"><section class="thanks" aria-labelledby="tyTitle">' +
       '<div class="tick" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>' +
@@ -343,17 +345,17 @@ footer .bar{height:24px; background:var(--lucas-green);}
         (confirmed ? ' We\'ve also emailed you a confirmation with your inquiry number.' : '') +
         ' Please quote this inquiry number in any correspondence.</p>' +
       '<div class="ty-actions">' +
-        (viewLink ? '<a class="btn" id="viewInq" href="' + esc(viewLink) + '" target="_blank" rel="noopener">View what you ordered</a>' : '') +
-        (excelBlob && !viewLink ? '<a class="btn outline" id="dlExcel" download="' + esc(LucasRFQExcel.fileName(ref)) + '">Download your parts list (Excel)</a>' : '') +
+        (excelBlob ? '<a class="btn" id="dlExcel" download="' + esc(LucasRFQExcel.fileName(ref)) + '">Download Excel</a>' : '') +
+        (viewLink ? '<a class="btn' + (excelBlob ? ' outline' : '') + '" id="viewInq" href="' + esc(viewLink) + '" target="_blank" rel="noopener">View what you ordered</a>' : '') +
         '<a class="btn outline" href="/">Back to catalogues</a>' +
       '</div>' +
-      (viewLink ? '<p class="sub" style="margin-top:18px;font-size:.9rem">Keep this link to see your inquiry later: <button type="button" class="linkbtn" id="copyLink">Copy link</button></p>' : '') +
+      (viewLink ? '<p class="sub" style="margin-top:18px;font-size:.9rem">Keep your Excel link to see your inquiry and download the Excel again later: <a id="excelLink" href="' + esc(excelUrl) + '" target="_blank" rel="noopener">Excel link</a> · <button type="button" class="linkbtn" id="copyLink">Copy link</button></p>' : '') +
       '</section></div>';
     var h = $('tyTitle'); h.focus(); window.scrollTo(0, 0);
-    if (excelBlob && !viewLink) $('dlExcel').href = URL.createObjectURL(excelBlob);
+    if (excelBlob) $('dlExcel').href = URL.createObjectURL(excelBlob);
     if (viewLink) $('copyLink').addEventListener('click', function(){
       var b = this;
-      (navigator.clipboard ? navigator.clipboard.writeText(viewLink) : Promise.reject()).then(function(){ b.textContent = 'Link copied'; }, function(){ window.prompt('Copy this link:', viewLink); });
+      (navigator.clipboard ? navigator.clipboard.writeText(excelUrl) : Promise.reject()).then(function(){ b.textContent = 'Link copied'; }, function(){ window.prompt('Copy this link:', excelUrl); });
     });
     $('copyRef').addEventListener('click', function(){
       var b = this;

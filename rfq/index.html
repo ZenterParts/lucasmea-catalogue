@@ -77,6 +77,8 @@ footer .bar{height:24px; background:var(--lucas-green);}
 
   // ?view=customer: the copy of the inquiry the customer sees (no sales buttons, no contact details table)
   var CUSTOMER = /[?&]view=customer\b/.test(location.search);
+  // &dl=1 (the customer's Excel link): start the Excel download as soon as the page opens
+  var AUTODL = /[?&]dl=1\b/.test(location.search);
   window.addEventListener('hashchange', function(){ location.reload(); });
   LucasRFQLink.read(location.hash).then(function(req){
     document.title = 'Inquiry ' + req.ref + ' – Lucas';
@@ -128,6 +130,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
 
     var btn = document.getElementById('dl'), note = document.getElementById('dlNote');
     if (btn) {
+      var label = btn.textContent;
       LucasRFQExcel.preload().catch(function(){});
       btn.addEventListener('click', function(){
         btn.disabled = true; btn.textContent = 'Preparing Excel…'; note.textContent = '';
@@ -139,8 +142,9 @@ footer .bar{height:24px; background:var(--lucas-green);}
           note.textContent = 'Downloaded ' + LucasRFQExcel.fileName(req.ref) + '.';
         }).catch(function(e){
           note.textContent = 'The Excel file could not be created: ' + (e && e.message || e) + '. Please try again.';
-        }).then(function(){ btn.disabled = false; btn.textContent = 'Download Excel'; });
+        }).then(function(){ btn.disabled = false; btn.textContent = label; });
       });
+      if (AUTODL) btn.click();
     }
   }).catch(function(err){
     app.innerHTML = '<div class="wrap"><div class="error"><h1>This request link could not be opened</h1><p>' + esc(err.message) + '</p><a class="btn" href="/">Go to the catalogues</a></div></div>';
