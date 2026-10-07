@@ -23,7 +23,7 @@
   var ABOUT_URL = 'https://www.lucasmeaparts.com/about-us';
 
   var CSS = [
-    '.snav{background:#000;border-top:4px solid #00954C;border-bottom:4px solid #00954C;position:sticky;top:0;z-index:50;font-family:"League Spartan",Arial,sans-serif}',
+    '.snav{background:#000;border-top:4px solid #00954C;border-bottom:4px solid #00954C;position:relative;z-index:50;font-family:"League Spartan",Arial,sans-serif}',
     '.snav-in{max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-height:52px}',
     '.snav a,.snav button{font:inherit;color:#fff;background:none;border:1px solid transparent;border-radius:6px;cursor:pointer;text-decoration:none;',
     ' font-size:16px;font-weight:500;padding:9px 14px 7px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}',

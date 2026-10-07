@@ -1,0 +1,35 @@
+/* Lucas online catalogues — the one green header used on every page.
+ *
+ * Markup (copy exactly):
+ *   <header class="lx-head">
+ *     <a class="lx-home" href="/" aria-label="Lucas online catalogues home"><img src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
+ *     <p class="lx-tag">Every Box Tells a Story</p>
+ *   </header>
+ *   <div id="site-nav"></div>          (the black menu, filled in by /assets/site-nav.js)
+ *
+ * The bar is exactly as tall as the logo artwork, so the white slash always runs
+ * from the top edge to the bottom edge with no green showing above or below it.
+ */
+@font-face{font-family:"League Spartan";src:url("fonts/league-spartan-latin-700-normal.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+
+.lx-head{
+  --lx-h:clamp(52px,5.6vw,80px);
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  height:var(--lx-h); margin:0; padding:0 clamp(14px,3vw,48px) 0 0; overflow:hidden;
+  background:#00954C; color:#fff; box-sizing:border-box;
+  font-family:"League Spartan","Noto Sans",Arial,sans-serif;
+  position:relative; z-index:1;
+}
+.lx-head .lx-home{display:block; flex:0 0 auto; height:100%; line-height:0; margin:0; padding:0;}
+.lx-head .lx-home img{display:block; height:100%; width:auto; max-width:none; margin:0; border:0;}
+.lx-head .lx-home:focus-visible{outline:3px solid #fff; outline-offset:-3px;}
+.lx-head .lx-tag{
+  margin:0; padding:0; color:#fff; font-weight:700; font-size:clamp(.85rem,1.7vw,1.6rem);
+  line-height:1.05; letter-spacing:0; text-transform:none; text-align:right; white-space:nowrap;
+}
+@media (max-width:400px){ .lx-head .lx-tag{white-space:normal; max-width:9.5em;} }
+
+/* the header already carries the campaign line, so the in-page copy meant for phones is not needed */
+.campaign-mobile{display:none !important;}
+
+@media print{ .lx-head{-webkit-print-color-adjust:exact; print-color-adjust:exact;} .snav{display:none !important;} }
