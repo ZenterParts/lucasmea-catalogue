@@ -11,7 +11,8 @@
       { name: 'Gas Springs', href: '/gas-springs/' },
       { name: 'Horns', href: '/horns/' },
       { name: 'Bulbs', href: '/bulbs/' },
-      { name: 'Filters' },
+      { name: 'Oil Filters', href: '/oil-filters/' },
+      { name: 'Air Filters', href: '/air-filters/' },
       { name: 'Wiper Blades', href: '/wiper-blades/' }
     ] },
     { brand: 'Girling', anchor: 'girling', items: [
