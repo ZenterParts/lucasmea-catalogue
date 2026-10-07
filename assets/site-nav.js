@@ -13,7 +13,8 @@
       { name: 'Bulbs', href: '/bulbs/' },
       { name: 'Oil Filters', href: '/oil-filters/' },
       { name: 'Air Filters', href: '/air-filters/' },
-      { name: 'Wiper Blades', href: '/wiper-blades/' }
+      { name: 'Wiper Blades', href: '/wiper-blades/' },
+      { name: 'Water Pumps', href: '/water-pumps/' }
     ] },
     { brand: 'Girling', anchor: 'girling', items: [
       { name: 'Batteries' }
