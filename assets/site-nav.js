@@ -26,7 +26,7 @@
     '.snav{background:#000;border-top:4px solid #00954C;border-bottom:4px solid #00954C;position:sticky;top:0;z-index:50;font-family:"League Spartan",Arial,sans-serif}',
     '.snav-in{max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-height:52px}',
     '.snav a,.snav button{font:inherit;color:#fff;background:none;border:1px solid transparent;border-radius:6px;cursor:pointer;text-decoration:none;',
-    ' text-transform:uppercase;letter-spacing:.02em;font-size:15px;font-weight:500;padding:9px 14px 7px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}',
+    ' font-size:16px;font-weight:500;padding:9px 14px 7px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}',
     '.snav a:hover,.snav button:hover{color:#7fd3a8}',
     '.snav .cur{border-color:#fff}',
     '.snav a:focus-visible,.snav button:focus-visible{outline:2px solid #7fd3a8;outline-offset:2px}',
@@ -58,9 +58,7 @@
   var path = location.pathname.replace(/index\.html$/, '');
   var onHome = path === '/' ;
   function cls(match) { return match ? ' class="cur" aria-current="page"' : ''; }
-  function brandHref(c) { return (onHome ? '' : '/') + '#' + c.anchor; }
 
-  var productsMenu = CATALOGUES.map(function (c) { return '<a href="' + brandHref(c) + '">' + c.brand + '</a>'; }).join('');
   var catalogueMenu = CATALOGUES.map(function (c) {
     return '<div><h4>' + c.brand + '</h4>' + c.items.map(function (it) {
       return it.href ? '<a href="' + it.href + '"' + (path.indexOf(it.href) === 0 ? ' aria-current="page"' : '') + '>' + it.name + '</a>'
@@ -74,9 +72,8 @@
       '<a class="cart toggle-cart' + (path.indexOf('/cart/') === 0 ? ' cur" aria-current="page"' : '"') + ' href="/cart/">Cart <b data-cart-count>0</b></a>' +
       '<div class="items" id="snav-items" style="display:contents">' +
         '<a href="/"' + cls(onHome) + '>Home</a>' +
-        '<div class="dd"><button type="button" aria-expanded="false">Products <span class="caret"></span></button><div class="menu">' + productsMenu + '</div></div>' +
-        '<a href="' + ABOUT_URL + '" target="_blank" rel="noopener">About us</a>' +
-        '<div class="dd"><button type="button" aria-expanded="false">Catalogue <span class="caret"></span></button><div class="menu wide">' + catalogueMenu + '</div></div>' +
+        '<div class="dd"><button type="button" aria-expanded="false">Catalogues <span class="caret"></span></button><div class="menu wide">' + catalogueMenu + '</div></div>' +
+        '<a href="' + ABOUT_URL + '" target="_blank" rel="noopener">About Lucas</a>' +
         '<a href="/cart/#contact">Contact us</a>' +
       '</div>' +
     '</div></nav>';

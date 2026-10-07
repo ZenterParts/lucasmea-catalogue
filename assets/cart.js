@@ -297,7 +297,23 @@
     a.appendChild(img);
   }
 
+  // Arriving from the home page search (e.g. /oil-filters/?q=hilux): put the search in the catalogue's own box
+  function prefillSearch() {
+    var q = '';
+    try { q = new URLSearchParams(location.search).get('q') || ''; } catch (e) {}
+    if (!q) return;
+    var box = document.querySelector('input#q, input#searchBox, input#vehSearch');
+    if (!box) return;
+    setTimeout(function () {
+      box.value = q;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      var top = box.getBoundingClientRect().top + window.pageYOffset - 90;
+      window.scrollTo(0, Math.max(0, top));
+    }, 0);
+  }
+
   function start() {
+    prefillSearch();
     if (CATALOGUE) linkLogoHome();
     updateCounts(load());
     if (CATALOGUE) enhanceCatalogue();
