@@ -34,8 +34,20 @@
   function keyOf(it) { return (it.catalogue || '') + '|' + it.no; }
   function count(items) { return (items || load()).length; }
 
+  /* One-line description used everywhere (cart, emails, Excel): catalogues may set it.desc;
+     otherwise it is built from the catalogue name plus make / application. */
+  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Filters': 'Filter', 'Batteries': 'Battery' };
+  function describe(it) {
+    if (!it) return '';
+    if (it.desc) return String(it.desc);
+    var body = [it.make, it.app].filter(Boolean).join(' ');
+    var kind = SINGULAR[it.catalogue] || it.catalogue || '';
+    return kind && body ? kind + ', ' + body : (body || kind);
+  }
+
   var api = {
-    items: load,
+    items: function () { return load().map(function (i) { if (!i.desc) i.desc = describe(i); return i; }); },
+    describe: describe,
     count: function () { return count(); },
     has: function (no, catalogue) { return load().some(function (i) { return i.no === no && (!catalogue || i.catalogue === catalogue); }); },
     add: function (list) {
@@ -44,7 +56,7 @@
       var added = 0;
       list.forEach(function (it) {
         if (!it || !it.no || seen[keyOf(it)]) return;
-        items.push({ no: it.no, catalogue: it.catalogue || '', make: it.make || '', app: it.app || '', oe: it.oe || '', details: it.details || null, qty: Math.max(1, parseInt(it.qty, 10) || 1) });
+        items.push({ no: it.no, catalogue: it.catalogue || '', desc: describe(it), make: it.make || '', app: it.app || '', oe: it.oe || '', qty: Math.max(1, parseInt(it.qty, 10) || 1) });
         seen[keyOf(it)] = true; added++;
       });
       save(items); return added;

@@ -30,36 +30,31 @@
   }
   var canZip = typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
 
-  // Compact form: detail columns are listed once, each part stores only its values.
+  // Compact form (v2): customer details + [LP no., description, qty] per part.
+  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Filters': 'Filter', 'Batteries': 'Battery' };
+  function descOf(it) {
+    if (it.desc) return String(it.desc);
+    var body = [it.make, it.app].filter(Boolean).join(' '), kind = SINGULAR[it.catalogue] || it.catalogue || '';
+    return kind && body ? kind + ', ' + body : (body || kind);
+  }
   function pack(req) {
-    var cols = [], seen = {};
-    (req.items || []).forEach(function (it) {
-      (it.details || []).forEach(function (d) { if (d && d[0] && !seen[d[0]]) { seen[d[0]] = 1; cols.push(d[0]); } });
-    });
     return {
-      v: 1, r: req.ref, d: (req.date || new Date()).toISOString(),
+      v: 2, r: req.ref, d: (req.date || new Date()).toISOString(),
       n: req.name, c: req.company, e: req.email, p: req.phone, k: req.country, t: req.type, m: req.message,
-      h: cols,
-      i: (req.items || []).map(function (it) {
-        var map = {}; (it.details || []).forEach(function (d) { map[d[0]] = d[1]; });
-        return [it.catalogue || '', it.no, Number(it.qty) || 1, it.make || '', it.app || '', it.oe || '',
-                cols.map(function (h) { return map[h] == null ? '' : map[h]; })];
-      })
+      i: (req.items || []).map(function (it) { return [it.no, descOf(it), Number(it.qty) || 1]; })
     };
   }
   function unpack(o) {
-    var cols = o.h || [];
-    return {
+    var base = {
       ref: o.r, date: o.d ? new Date(o.d) : new Date(),
-      name: o.n || '', company: o.c || '', email: o.e || '', phone: o.p || '', country: o.k || '', type: o.t || '', message: o.m || '',
-      items: (o.i || []).map(function (a) {
-        var vals = a[6] || [];
-        return {
-          catalogue: a[0], no: a[1], qty: a[2], make: a[3], app: a[4], oe: a[5],
-          details: cols.length ? cols.map(function (h, j) { return [h, vals[j] == null ? '' : vals[j]]; }) : null
-        };
-      })
+      name: o.n || '', company: o.c || '', email: o.e || '', phone: o.p || '', country: o.k || '', type: o.t || '', message: o.m || ''
     };
+    base.items = (o.i || []).map(function (a) {
+      if (o.v >= 2) return { no: a[0], desc: a[1] || '', qty: a[2] };
+      // links sent before October 2026: [catalogue, no, qty, make, app, oe, details]
+      return { no: a[1], desc: descOf({ catalogue: a[0], make: a[3], app: a[4] }), qty: a[2] };
+    });
+    return base;
   }
 
   function make(req) {

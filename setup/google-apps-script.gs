@@ -3,9 +3,10 @@
  *
  * Lucas online catalogues: Request for Price handler (Google Apps Script)
  * -------------------------------------------------------------------------
- * What it does, for every request sent from lucasmeacatalogue.com/cart/:
- *   1. Emails the sales team, with the parts list and the Excel file attached.
- *   2. Emails the customer a confirmation with their reference number and parts.
+ * What it does, for every inquiry sent from lucasmeacatalogue.com/cart/:
+ *   1. Emails the sales team (SALES_EMAIL) the inquiry number, the customer's details,
+ *      the parts (LP No., description, qty) and a link to download the Excel file.
+ *   2. Emails the customer a thank-you with their inquiry number and the parts they asked for.
  *   3. Saves the Excel file into a master Google Drive folder:
  *        RFQ Inquiries (master) / Lucas online catalogue / 2026-09 / LMEA-260929-AB12 - Company.xlsx
  *   4. Adds a row to the "Requests" tab of this Google Sheet (a running log with a link
@@ -36,7 +37,8 @@ var CONFIG = {
   SITE_URL: 'https://lucasmeacatalogue.com',
   LOGO_URL: 'https://lucasmeacatalogue.com/assets/lucas-logo.png',
   SEND_CUSTOMER_EMAIL: true,
-  ATTACH_EXCEL_TO_CUSTOMER: true,          // false = customer gets the email without the Excel file
+  ATTACH_EXCEL_TO_CUSTOMER: false,         // true = also attach the Excel file to the customer's thank-you email
+  ATTACH_EXCEL_TO_SALES: false,            // true = attach the Excel file to the sales email as well as the download link
   MAX_REQUESTS_PER_EMAIL_PER_HOUR: 5,      // simple protection against abuse
   LOG_SHEET_NAME: 'Requests',
   MASTER_FOLDER_NAME: 'RFQ Inquiries (master)', // created in My Drive on first run
@@ -70,8 +72,8 @@ function doPost(e) {
 
     var items = (Array.isArray(d.items) ? d.items : []).slice(0, 500).map(function (it) {
       return {
-        no: clean_(it.no, 40), catalogue: clean_(it.catalogue, 60), make: clean_(it.make, 80),
-        app: clean_(it.app, 300), oe: clean_(it.oe, 80),
+        no: clean_(it.no, 40), catalogue: clean_(it.catalogue, 60),
+        desc: clean_(it.desc || [it.make, it.app].filter(Boolean).join(' '), 300),
         qty: Math.max(1, Math.min(99999, parseInt(it.qty, 10) || 1))
       };
     }).filter(function (it) { return it.no; });
@@ -103,12 +105,12 @@ function doPost(e) {
     // 1. Sales team
     MailApp.sendEmail({
       to: CONFIG.SALES_EMAIL,
-      subject: (items.length ? 'Price request ' : 'Enquiry ') + req.ref + ' | ' + items.length + ' part' + (items.length === 1 ? '' : 's') + ' | ' + who,
-      htmlBody: salesHtml_(req, items, totalQty, attachments.length > 0),
-      body: plain_(req, items, totalQty),
+      subject: 'New inquiry ' + req.ref + ' | ' + items.length + ' part' + (items.length === 1 ? '' : 's') + ' | ' + who,
+      htmlBody: salesHtml_(req, items, totalQty),
+      body: (req.link ? 'Download Excel: ' + req.link + '\n\n' : '') + plain_(req, items, totalQty),
       replyTo: req.email,
       name: CONFIG.FROM_NAME,
-      attachments: attachments
+      attachments: (CONFIG.ATTACH_EXCEL_TO_SALES || !req.link) ? attachments : []
     });
 
     // 2. Customer confirmation
@@ -117,10 +119,10 @@ function doPost(e) {
       try {
         MailApp.sendEmail({
           to: req.email,
-          subject: 'We have received your request, reference ' + req.ref,
+          subject: 'Thank you for your inquiry ' + req.ref,
           htmlBody: customerHtml_(req, items, totalQty),
-          body: 'Thank you ' + req.name + '.\n\nWe have received your ' + (items.length ? 'request for price' : 'enquiry') +
-                '. Your reference number is ' + req.ref + '.\nA sales agent will contact you shortly.\n\n' + plain_(req, items, totalQty),
+          body: 'Thank you ' + req.name + '.\n\nWe have received your inquiry. Your inquiry number is ' + req.ref +
+                '.\nA sales agent will contact you shortly. Please quote this number in any correspondence.\n\n' + partsPlain_(items, totalQty),
           replyTo: CONFIG.REPLY_TO,
           name: CONFIG.FROM_NAME,
           attachments: CONFIG.ATTACH_EXCEL_TO_CUSTOMER ? attachments : []
@@ -178,7 +180,7 @@ function saveToDrive_(req, blob) {
   var folder = child_(child_(masterFolder_(), CONFIG.SOURCE_FOLDER), month);
   var who = (req.company || req.name).replace(/[\\/:*?"<>|#%]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
   var file = folder.createFile(blob.copyBlob().setName(req.ref + ' - ' + who + '.xlsx'));
-  file.setDescription('Request for price ' + req.ref + ' from ' + req.name + ' <' + req.email + '>');
+  file.setDescription('Inquiry ' + req.ref + ' from ' + req.name + ' <' + req.email + '>');
   return file.getUrl();
 }
 
@@ -190,13 +192,17 @@ function esc_(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').repl
 function nl2br_(s) { return esc_(s).replace(/\n/g, '<br>'); }
 function now_() { return Utilities.formatDate(new Date(), 'Asia/Dubai', 'dd/MM/yyyy HH:mm') + ' (UAE)'; }
 
+function partsPlain_(items, totalQty) {
+  if (!items.length) return '';
+  return 'Parts (' + items.length + ' lines, ' + totalQty + ' pcs):\n' + items.map(function (it, i) {
+    return (i + 1) + '. ' + it.no + '  |  ' + it.desc + '  |  Qty ' + it.qty;
+  }).join('\n');
+}
+
 function plain_(req, items, totalQty) {
-  var lines = items.map(function (it, i) {
-    return (i + 1) + '. ' + it.no + '  x ' + it.qty + '  |  ' + it.catalogue + '  |  ' + [it.make, it.app].filter(String).join(' ') + (it.oe ? '  |  OE ' + it.oe : '');
-  });
-  return 'Reference: ' + req.ref + '\nName: ' + req.name + '\nCompany: ' + req.company + '\nEmail: ' + req.email +
+  return 'Inquiry No.: ' + req.ref + '\nName: ' + req.name + '\nCompany: ' + req.company + '\nEmail: ' + req.email +
     '\nPhone: ' + req.phone + '\nCountry: ' + req.country + '\nCustomer type: ' + req.type +
-    '\n\nParts (' + items.length + ' lines, ' + totalQty + ' pcs):\n' + (lines.join('\n') || '(none, general enquiry)') +
+    '\n\n' + (partsPlain_(items, totalQty) || '(no parts, general enquiry)') +
     '\n\nMessage:\n' + (req.message || '-');
 }
 
@@ -207,20 +213,25 @@ function partsTable_(items, totalQty) {
   var rows = items.map(function (it, i) {
     return '<tr' + (i % 2 ? ' style="background:#F7F7F7"' : '') + '>' +
       '<td ' + td + '>' + (i + 1) + '</td>' +
-      '<td ' + td + '><b style="color:' + GREEN + '">' + esc_(it.no) + '</b><br><span style="color:' + GREY + ';font-size:12px">' + esc_(it.catalogue) + '</span></td>' +
-      '<td ' + td + '>' + esc_(it.make) + (it.app ? '<br><span style="color:' + GREY + ';font-size:12px">' + esc_(it.app) + '</span>' : '') + '</td>' +
-      '<td ' + td + '>' + esc_(it.oe || '-') + '</td>' +
+      '<td ' + td + '><b style="color:' + GREEN + '">' + esc_(it.no) + '</b></td>' +
+      '<td ' + td + '>' + esc_(it.desc || '-') + '</td>' +
       '<td ' + td + ' align="center"><b>' + it.qty + '</b></td></tr>';
   }).join('');
   return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #DCDCDC;margin:8px 0 4px">' +
-    '<tr><th ' + th + '>#</th><th ' + th + '>Lucas no.</th><th ' + th + '>Vehicle / application</th><th ' + th + '>OE no.</th><th ' + th + ' align="center">Qty</th></tr>' +
+    '<tr><th ' + th + '>#</th><th ' + th + '>LP No.</th><th ' + th + '>Description</th><th ' + th + ' align="center">Qty</th></tr>' +
     rows +
-    '<tr><td colspan="4" style="background:#E6F4ED;font:bold 13px Arial,sans-serif;padding:8px 10px;text-align:right;color:' + BLACK + '">Total</td>' +
+    '<tr><td colspan="3" style="background:#E6F4ED;font:bold 13px Arial,sans-serif;padding:8px 10px;text-align:right;color:' + BLACK + '">Total quantity</td>' +
     '<td align="center" style="background:#E6F4ED;font:bold 13px Arial,sans-serif;padding:8px 10px;color:' + BLACK + '">' + totalQty + '</td></tr></table>';
 }
 
+function refBox_(ref, label) {
+  return '<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 16px"><tr>' +
+    '<td style="background:#E6F4ED;border:1px dashed ' + GREEN + ';padding:12px 16px;font:12px Arial,sans-serif;color:' + GREY + '">' + label + '<br>' +
+    '<span style="font:bold 22px Arial,sans-serif;color:' + BLACK + ';letter-spacing:1px">' + esc_(ref) + '</span></td></tr></table>';
+}
+
 function detailsTable_(req) {
-  var rows = [['Reference', '<b>' + esc_(req.ref) + '</b>'], ['Name', esc_(req.name)], ['Company', esc_(req.company || '-')],
+  var rows = [['Inquiry No.', '<b>' + esc_(req.ref) + '</b>'], ['Name', esc_(req.name)], ['Company', esc_(req.company || '-')],
     ['Email', '<a href="mailto:' + esc_(req.email) + '" style="color:' + GREEN + '">' + esc_(req.email) + '</a>'],
     ['Phone / WhatsApp', esc_(req.phone || '-')], ['Country', esc_(req.country || '-')], ['Customer type', esc_(req.type || '-')],
     ['Message', nl2br_(req.message || '-')]];
@@ -242,13 +253,13 @@ function shell_(inner) {
     '<tr><td style="background:' + GREEN + ';height:14px;line-height:14px;font-size:0">&nbsp;</td></tr></table></div>';
 }
 
-function salesHtml_(req, items, totalQty, hasExcel) {
+function salesHtml_(req, items, totalQty) {
   return shell_(
-    '<h1 style="margin:0 0 6px;font:bold 22px Arial,sans-serif;color:' + GREEN + '">' + (items.length ? 'New request for price' : 'New enquiry') + '</h1>' +
-    '<p style="margin:0 0 14px">Received ' + now_() + ' from the online catalogue. Reply to this email to answer the customer directly.' +
-    (hasExcel ? ' The parts list is attached as an Excel file, with columns for price and lead time.' : '') + '</p>' +
-    (req.fileUrl ? '<p style="margin:0 0 14px">Saved to the master folder: <a href="' + esc_(req.fileUrl) + '" style="color:' + GREEN + '">open the Excel file in Google Drive</a>.</p>' : '') +
-    (req.link ? '<p style="margin:0 0 14px"><a href="' + esc_(req.link) + '" style="display:inline-block;background:' + GREEN + ';color:#fff;font:bold 14px Arial,sans-serif;text-decoration:none;padding:10px 18px;border-radius:4px">Open request &amp; download Excel</a></p>' : '') +
+    '<h1 style="margin:0 0 6px;font:bold 22px Arial,sans-serif;color:' + GREEN + '">New inquiry</h1>' +
+    '<p style="margin:0 0 14px">Received ' + now_() + ' from the online catalogue. Reply to this email to answer the customer directly.</p>' +
+    refBox_(req.ref, 'INQUIRY NUMBER') +
+    (req.link ? '<p style="margin:0 0 14px"><a href="' + esc_(req.link) + '" style="display:inline-block;background:' + GREEN + ';color:#fff;font:bold 14px Arial,sans-serif;text-decoration:none;padding:10px 18px;border-radius:4px">Download Excel</a></p>' : '') +
+    (req.fileUrl ? '<p style="margin:0 0 14px;font-size:12px">Also saved in Google Drive: <a href="' + esc_(req.fileUrl) + '" style="color:' + GREEN + '">open the Excel file</a>.</p>' : '') +
     detailsTable_(req) +
     (items.length ? '<h2 style="margin:18px 0 4px;font:bold 16px Arial,sans-serif;color:' + GREEN + '">Parts (' + items.length + ' lines, ' + totalQty + ' pcs)</h2>' + partsTable_(items, totalQty) : ''));
 }
@@ -257,15 +268,11 @@ function customerHtml_(req, items, totalQty) {
   var first = esc_(req.name.split(' ')[0]);
   return shell_(
     '<h1 style="margin:0 0 8px;font:bold 24px Arial,sans-serif;color:' + GREEN + '">Thank you, ' + first + '</h1>' +
-    '<p style="margin:0 0 14px">We have received your ' + (items.length ? 'request for price' : 'enquiry') + '. A sales agent will contact you shortly.</p>' +
-    '<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 16px"><tr>' +
-    '<td style="background:#E6F4ED;border:1px dashed ' + GREEN + ';padding:12px 16px;font:12px Arial,sans-serif;color:' + GREY + '">YOUR REFERENCE NUMBER<br>' +
-    '<span style="font:bold 22px Arial,sans-serif;color:' + BLACK + ';letter-spacing:1px">' + esc_(req.ref) + '</span></td></tr></table>' +
-    '<p style="margin:0 0 14px">Please quote this reference number in any correspondence.</p>' +
+    '<p style="margin:0 0 14px">We have received your inquiry. A sales agent will contact you shortly.</p>' +
+    refBox_(req.ref, 'YOUR INQUIRY NUMBER') +
+    '<p style="margin:0 0 14px">Please quote this inquiry number in any correspondence.</p>' +
     (items.length ? '<h2 style="margin:18px 0 4px;font:bold 16px Arial,sans-serif;color:' + GREEN + '">Your parts</h2>' + partsTable_(items, totalQty) : '') +
-    '<h2 style="margin:18px 0 4px;font:bold 16px Arial,sans-serif;color:' + GREEN + '">Your details</h2>' + detailsTable_(req) +
-    '<p style="margin:16px 0 8px">If anything is wrong, just reply to this email.</p>' +
-    '<p style="margin:0 0 8px;font-size:12px">Dimensions are for reference only. Always confirm against the physical part before ordering.</p>');
+    '<p style="margin:16px 0 8px">If anything is wrong, just reply to this email.</p>');
 }
 
 function sheet_() {
@@ -274,7 +281,7 @@ function sheet_() {
   var sh = ss.getSheetByName(CONFIG.LOG_SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(CONFIG.LOG_SHEET_NAME);
-    sh.appendRow(['Received (UAE)', 'Reference', 'Name', 'Company', 'Email', 'Phone / WhatsApp', 'Country', 'Customer type',
+    sh.appendRow(['Received (UAE)', 'Inquiry No.', 'Name', 'Company', 'Email', 'Phone / WhatsApp', 'Country', 'Customer type',
       'Lines', 'Total qty', 'Parts', 'Excel file', 'Message', 'Confirmation sent', 'Status', 'Assigned to', 'Notes']);
     sh.getRange(1, 1, 1, 17).setFontWeight('bold').setBackground(GREEN).setFontColor('#ffffff');
     sh.setFrozenRows(1);

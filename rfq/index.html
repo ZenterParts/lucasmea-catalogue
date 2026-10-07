@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Request for Price – Lucas Online Catalogues</title>
+<title>Inquiry – Lucas Online Catalogues</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <link rel="icon" type="image/png" href="/assets/icon-gas-springs.png">
@@ -45,13 +45,13 @@ footer .rule{height:6px; background:var(--lucas-green);}
 footer .inner{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:22px 24px 26px; max-width:1100px; margin:0 auto; font-size:0.9rem;}
 footer .strapline{font-weight:700; color:var(--lucas-green); font-size:1.2rem;}
 footer .bar{height:24px; background:var(--lucas-green);}
-@media (max-width:600px){ body{font-size:16px;} .wrap{padding:0 16px;} .details td:first-child{width:120px;} .parts th:nth-child(4), .parts td:nth-child(4){display:none;} }
+@media (max-width:600px){ body{font-size:16px;} .wrap{padding:0 16px;} .details td:first-child{width:120px;}  }
 </style>
 </head>
 <body>
 <header class="lucas-bar">
   <a href="/" aria-label="Lucas online catalogues home"><img class="lucas-logo" src="/assets/lucas-logo.png" alt="Lucas"></a>
-  <span class="bar-title">Request for price</span>
+  <span class="bar-title">Inquiry</span>
 </header>
 
 <main id="app">
@@ -76,30 +76,30 @@ footer .bar{height:24px; background:var(--lucas-green);}
 
   window.addEventListener('hashchange', function(){ location.reload(); });
   LucasRFQLink.read(location.hash).then(function(req){
-    document.title = 'Request for Price ' + req.ref + ' – Lucas';
+    document.title = 'Inquiry ' + req.ref + ' – Lucas';
     var total = req.items.reduce(function(s, it){ return s + (Number(it.qty) || 0); }, 0);
-    var rows = [['Reference', '<b>' + esc(req.ref) + '</b>'], ['Received', esc(fmt(req.date))], ['Name', esc(req.name)], ['Company', esc(req.company || '–')],
-      ['Email', req.email ? '<a href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your request for price ' + req.ref) + '">' + esc(req.email) + '</a>' : '–'],
+    var rows = [['Inquiry No.', '<b>' + esc(req.ref) + '</b>'], ['Received', esc(fmt(req.date))], ['Name', esc(req.name)], ['Company', esc(req.company || '–')],
+      ['Email', req.email ? '<a href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your inquiry ' + req.ref) + '">' + esc(req.email) + '</a>' : '–'],
       ['Phone / WhatsApp', esc(req.phone || '–')], ['Country', esc(req.country || '–')], ['Customer type', esc(req.type || '–')],
       ['Message', esc(req.message || '–').replace(/\n/g, '<br>')]];
     app.innerHTML =
       '<div class="pagehead"><div class="wrap">' +
-        '<div class="eyebrow">Request for price</div>' +
+        '<div class="eyebrow">Inquiry number</div>' +
         '<h1>' + esc(req.ref) + '</h1>' +
         '<p>' + esc(req.company || req.name) + ' · ' + req.items.length + ' line' + (req.items.length === 1 ? '' : 's') + ', ' + total + ' pcs · ' + esc(fmt(req.date)) + '</p>' +
         '<div class="actions">' +
           (req.items.length ? '<button class="btn" id="dl" type="button">Download Excel</button>' : '') +
-          (req.email ? '<a class="btn outline" href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your request for price ' + req.ref) + '">Reply to customer</a>' : '') +
+          (req.email ? '<a class="btn outline" href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your inquiry ' + req.ref) + '">Reply to customer</a>' : '') +
         '</div>' +
         '<p class="note" id="dlNote" style="margin:10px 0 0"></p>' +
       '</div></div>' +
       '<div class="wrap">' +
         '<section><h2>Customer</h2><table class="details">' + rows.map(function(r){ return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('') + '</table></section>' +
-        (req.items.length ? '<section><h2>Parts</h2><div class="scroll"><table class="parts"><thead><tr><th>#</th><th>Lucas no.</th><th>Vehicle / application</th><th>OE no.</th><th style="text-align:center">Qty</th></tr></thead><tbody>' +
+        (req.items.length ? '<section><h2>Parts</h2><div class="scroll"><table class="parts"><thead><tr><th>#</th><th>LP No.</th><th>Description</th><th style="text-align:center">Qty</th></tr></thead><tbody>' +
           req.items.map(function(it, i){
-            return '<tr><td>' + (i + 1) + '</td><td class="no">' + esc(it.no) + '<small>' + esc(it.catalogue) + '</small></td><td>' + esc(it.make) + (it.app ? '<small>' + esc(it.app) + '</small>' : '') + '</td><td>' + esc(it.oe || '–') + '</td><td class="qty">' + esc(it.qty) + '</td></tr>';
+            return '<tr><td>' + (i + 1) + '</td><td class="no">' + esc(it.no) + '</td><td>' + esc(it.desc || '') + '</td><td class="qty">' + esc(it.qty) + '</td></tr>';
           }).join('') +
-          '<tr class="total"><td colspan="4" style="text-align:right">Total</td><td class="qty">' + total + '</td></tr></tbody></table></div></section>' : '') +
+          '<tr class="total"><td colspan="3" style="text-align:right">Total quantity</td><td class="qty">' + total + '</td></tr></tbody></table></div></section>' : '') +
       '</div>';
 
     var btn = document.getElementById('dl'), note = document.getElementById('dlNote');

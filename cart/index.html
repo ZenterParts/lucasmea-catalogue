@@ -95,9 +95,8 @@ footer .bar{height:24px; background:var(--lucas-green);}
   tr.item{display:grid; grid-template-columns:1fr auto; gap:2px 12px; padding:12px 16px; border-top:1px solid var(--lucas-border);}
   tr.item td{border:0; padding:0;}
   tr.item td.no{grid-column:1;} tr.item td.qty{grid-column:2; grid-row:1 / span 2;}
-  tr.item td.desc{grid-column:1;} tr.item td.oe{grid-column:1; font-size:0.85rem;}
+  tr.item td.desc{grid-column:1;}
   tr.item td.rm{grid-column:2; text-align:right;}
-  tr.item td.oe::before{content:"OE: ";}
   .cat-row td{padding:8px 16px 6px;}
 }
 </style>
@@ -193,14 +192,13 @@ footer .bar{height:24px; background:var(--lucas-green);}
     }
     var groups = {}, order = [];
     items.forEach(function(it){ var c = it.catalogue || 'Other'; if(!groups[c]){ groups[c] = []; order.push(c); } groups[c].push(it); });
-    var html = '<table><thead><tr><th>Lucas no.</th><th>Vehicle / application</th><th>OE no.</th><th>Qty</th><th><span style="position:absolute;left:-9999px">Remove</span></th></tr></thead><tbody>';
+    var html = '<table><thead><tr><th>LP No.</th><th>Description</th><th>Qty</th><th><span style="position:absolute;left:-9999px">Remove</span></th></tr></thead><tbody>';
     order.forEach(function(c){
-      if (order.length > 1 || c) html += '<tr class="cat-row"><td colspan="5">' + esc(c) + '</td></tr>';
+      if (order.length > 1 || c) html += '<tr class="cat-row"><td colspan="4">' + esc(c) + '</td></tr>';
       groups[c].forEach(function(it){
         html += '<tr class="item" data-no="' + esc(it.no) + '" data-cat="' + esc(it.catalogue) + '">' +
           '<td class="no">' + esc(it.no) + '</td>' +
-          '<td class="desc">' + esc(it.make) + (it.app ? '<small>' + esc(it.app) + '</small>' : '') + '</td>' +
-          '<td class="oe">' + esc(it.oe || '–') + '</td>' +
+          '<td class="desc">' + esc(it.desc) + '</td>' +
           '<td class="qty"><input type="number" min="1" max="99999" inputmode="numeric" value="' + (it.qty || 1) + '" aria-label="Quantity for ' + esc(it.no) + '"></td>' +
           '<td class="rm"><button type="button" aria-label="Remove ' + esc(it.no) + '">Remove</button></td></tr>';
       });
@@ -244,12 +242,12 @@ footer .bar{height:24px; background:var(--lucas-green);}
 
     var ref = makeRef();
     var partsText = items.length ? items.map(function(it, i){
-      return (i + 1) + '. ' + it.no + '  x ' + it.qty + '  |  ' + (it.catalogue || '') + '  |  ' + [it.make, it.app].filter(Boolean).join(' ') + (it.oe ? '  |  OE ' + it.oe : '');
+      return (i + 1) + '. ' + it.no + '  |  ' + it.desc + '  |  Qty ' + it.qty;
     }).join('\n') : '(no parts, general enquiry)';
     var totalQty = items.reduce(function(s, it){ return s + (parseInt(it.qty, 10) || 1); }, 0);
     var who = v('f-company') || v('f-name');
-    var subject = (items.length ? 'Price request ' : 'Enquiry ') + ref + ' | ' + items.length + ' part' + (items.length === 1 ? '' : 's') + ' | ' + who;
-    var bodyText = 'Reference: ' + ref + '\nName: ' + v('f-name') + '\nCompany: ' + v('f-company') + '\nEmail: ' + v('f-email') +
+    var subject = 'Inquiry ' + ref + ' | ' + items.length + ' part' + (items.length === 1 ? '' : 's') + ' | ' + who;
+    var bodyText = 'Inquiry No.: ' + ref + '\nName: ' + v('f-name') + '\nCompany: ' + v('f-company') + '\nEmail: ' + v('f-email') +
       '\nPhone: ' + v('f-phone') + '\nCountry: ' + v('f-country') + '\nI am a: ' + v('f-type') +
       '\n\nParts (' + items.length + ' lines, ' + totalQty + ' pcs):\n' + partsText + '\n\nMessage:\n' + (v('f-msg') || '-');
 
@@ -279,7 +277,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
         body: JSON.stringify({
           ref: ref, name: req.name, company: req.company, email: req.email, phone: req.phone, country: req.country,
           type: req.type, message: req.message, botcheck: $('botcheck').checked, page: location.href,
-          items: items.map(function(it){ return { no: it.no, catalogue: it.catalogue, make: it.make, app: it.app, oe: it.oe, qty: it.qty }; }),
+          items: items.map(function(it){ return { no: it.no, desc: it.desc, catalogue: it.catalogue, qty: it.qty }; }),
           excel: b64 ? { name: LucasRFQExcel.fileName(ref), base64: b64 } : null,
           link: excelLink
         })
@@ -308,8 +306,8 @@ footer .bar{height:24px; background:var(--lucas-green);}
         body: JSON.stringify({
           access_key: W3F_KEY, subject: subject, from_name: 'Lucas online catalogue', replyto: v('f-email'),
           botcheck: $('botcheck').checked,
-          reference: ref,
-          'Excel parts list': excelLink || '(no parts, general enquiry)',
+          'Inquiry number': ref,
+          'Download Excel': excelLink || '(no parts, general enquiry)',
           name: v('f-name'), company: v('f-company'), email: v('f-email'), phone: v('f-phone'),
           country: v('f-country'), customer_type: v('f-type'),
           parts_count: items.length + ' lines, ' + totalQty + ' pcs', parts: partsText, message: v('f-msg') || '-'
@@ -337,11 +335,11 @@ footer .bar{height:24px; background:var(--lucas-green);}
       '<div class="wrap"><section class="thanks" aria-labelledby="tyTitle">' +
       '<div class="tick" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>' +
       '<h1 id="tyTitle" tabindex="-1">Thank you' + (name ? ', ' + esc(name) : '') + '</h1>' +
-      '<p>' + (n ? 'Your request for price has been received.' : 'Your enquiry has been received.') + '</p>' +
-      '<div class="ref"><span>Your reference number</span><strong id="refNo">' + esc(ref) + '</strong><button type="button" id="copyRef">Copy</button></div>' +
+      '<p>' + (n ? 'Your inquiry has been received.' : 'Your message has been received.') + '</p>' +
+      '<div class="ref"><span>Your inquiry number</span><strong id="refNo">' + esc(ref) + '</strong><button type="button" id="copyRef">Copy</button></div>' +
       '<p class="sub">A sales agent will contact you shortly at <b>' + esc(email) + '</b>.' +
-        (confirmed ? ' We\'ve also emailed you a confirmation with your reference number and parts list.' : '') +
-        ' Please quote this reference number in any correspondence.</p>' +
+        (confirmed ? ' We\'ve also emailed you a confirmation with your inquiry number.' : '') +
+        ' Please quote this inquiry number in any correspondence.</p>' +
       '<div class="ty-actions">' +
         (excelBlob ? '<a class="btn outline" id="dlExcel" download="' + esc(LucasRFQExcel.fileName(ref)) + '">Download your parts list (Excel)</a>' : '') +
         '<a class="btn" href="/">Back to catalogues</a>' +

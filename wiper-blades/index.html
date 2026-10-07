@@ -281,7 +281,7 @@ init();
 /* Request-for-price cart: tells the shared cart how to describe a wiper blade */
 window.LucasCartDescribe = function(no){
   const p = PARTS.find(x => x.no === no); if(!p) return null;
-  return { make: p.type + ' wiper blade, ' + p.range, app: p.desc, oe: p.xref,
+  return { desc: p.desc, make: p.type + ' wiper blade, ' + p.range, app: p.desc, oe: p.xref,
     details: [['Lucas No.', p.no], ['Description', p.desc], ['Blade type', p.type], ['Range', p.range],
               ['Length (inch)', p.inch], ['Length (mm)', p.mm === '' ? '' : String(p.mm)], ['OE / cross ref.', p.xref]] };
 };

@@ -2036,6 +2036,7 @@ window.LucasCartDescribe = function(no){
   const p = BY_NO[no]; if (!p) return null;
   const rng = [p.rng, p.rngName].filter(Boolean).join(' ');
   return {
+    desc: ['Bulb', p.item, rng, p.v && p.v + 'V', p.w && p.w + 'W', p.base].filter(Boolean).join(' '),
     make: [p.item, rng].filter(Boolean).join(' '),
     app: [p.type, p.v && p.v + ' V', p.w && p.w + ' W', p.base].filter(Boolean).join(' · '),
     oe: '',

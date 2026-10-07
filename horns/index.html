@@ -410,7 +410,7 @@ $('#results').addEventListener('click', e=>{ const b=e.target.closest('[data-cop
 // ---- horn sound preview: short audio clips generated from each horn's rated frequency ----
 // Played through a normal <audio> element so it works on phones (incl. iPhone with the silent switch on).
 // ---- request-for-price cart (lucasmeacatalogue.com shared cart; hidden when opened as a standalone file) ----
-function cartItem(d){ return { no:d.code, catalogue:CAT, make:d.type+' '+d.volt, app:d.desc, oe:'',
+function cartItem(d){ return { no:d.code, catalogue:CAT, desc:d.type+' '+d.volt+' '+d.desc, make:d.type+' '+d.volt, app:d.desc, oe:'',
   details:[['Horn type',d.type],['Voltage',d.volt],['Description',d.desc],['Frequency',d.freq],['Sound level (2 m)',d.db],['Competitor interchange',d._cs.join(', ')]] }; }
 if(CART){
   const logo=document.querySelector('.brandbar img'); if(logo && !logo.closest('a')){ const a=document.createElement('a'); a.href='/'; a.setAttribute('aria-label','Lucas online catalogues home'); logo.parentNode.insertBefore(a,logo); a.appendChild(logo); }
