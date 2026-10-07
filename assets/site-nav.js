@@ -10,6 +10,7 @@
     { brand: 'Lucas', anchor: 'lucas', items: [
       { name: 'Gas Springs', href: '/gas-springs/' },
       { name: 'Horns', href: '/horns/' },
+      { name: 'Bulbs', href: '/bulbs/' },
       { name: 'Filters' },
       { name: 'Wiper Blades' }
     ] },

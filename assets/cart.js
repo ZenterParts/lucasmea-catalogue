@@ -129,7 +129,13 @@
       function c(i) { return i < 0 ? '' : text(cells[i + off]); }
       var details = [];
       for (var i = 0; i < labels.length; i++) { if (labels[i]) details.push([labels[i], c(i)]); }
-      return { no: tr.__lcNo, catalogue: CATALOGUE, make: c(cMake), app: c(cApp), oe: c(cOe), details: details };
+      var item = { no: tr.__lcNo, catalogue: CATALOGUE, make: c(cMake), app: c(cApp), oe: c(cOe), details: details };
+      // Optional: a catalogue page can describe its own parts for the cart and Excel sheet
+      // by defining window.LucasCartDescribe(partNo) -> { make, app, oe, details }.
+      if (typeof window.LucasCartDescribe === 'function') {
+        try { var extra = window.LucasCartDescribe(tr.__lcNo); if (extra) for (var k in extra) if (extra[k] != null) item[k] = extra[k]; } catch (e) {}
+      }
+      return item;
     }
 
     function paint(tr) {
