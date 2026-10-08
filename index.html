@@ -59,6 +59,7 @@ a{color:inherit;}
 .results .cat{font-size:.85rem; color:#5b5b5b; text-align:right;}
 .results .desc{grid-column:1 / -1; font-size:.95rem; color:#3d3d3d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .results .empty, .results .loading{padding:18px; color:#3d3d3d;}
+.results .ask{font:inherit; font-weight:700; color:var(--lucas-green-dark); background:none; border:0; padding:0; text-decoration:underline; cursor:pointer;}
 .results .more{padding:12px 18px 14px; font-size:.95rem; color:#3d3d3d;}
 
 .show{flex:1 1 420px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:14px;}
@@ -180,7 +181,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
         <li><a class="tile" href="/wiper-blades/"><div class="pic"><img src="/assets/home/wiper-blades.jpg" alt="" width="1000" height="454" loading="lazy"></div><div class="txt"><h3>Wiper Blades</h3><span>141 part numbers</span><span>Conventional, flat and hybrid</span></div></a></li>
         <li><a class="tile" href="/oil-filters/"><div class="pic"><img src="/assets/home/oil-filters.jpg" alt="" width="814" height="603" loading="lazy"></div><div class="txt"><h3>Oil Filters</h3><span>140 part numbers</span><span>7,691 vehicle applications</span></div></a></li>
         <li><a class="tile" href="/horns/"><div class="pic"><img src="/assets/home/horns.jpg" alt="" width="1000" height="525" loading="lazy"></div><div class="txt"><h3>Horns</h3><span>21 part numbers</span><span>12V and 24V</span></div></a></li>
-        <li><a class="tile help" href="/cart/#contact"><div><h3>Can't find your part?</h3><p>Send us the OE number, a photo or the vehicle details and we'll find the Lucas match for you.</p></div><span class="go">Contact us</span></a></li>
+        <li><a class="tile help" href="#find-part"><div><h3>Can't find your part?</h3><p>Send us the OE number, a photo or the vehicle details and we'll find the Lucas match for you.</p></div><span class="go">Contact us</span></a></li>
       </ul>
     </div>
   </section>
@@ -203,6 +204,8 @@ footer .rule{height:6px; background:var(--lucas-green);}
       </ol>
     </div>
   </section>
+
+  <div data-part-request></div>
 </main>
 
 <footer id="contact">
@@ -232,7 +235,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
         <h3>Lucas MEA</h3>
         <p><a href="https://www.lucasmeaparts.com" target="_blank" rel="noopener" style="color:#fff">lucasmeaparts.com</a></p>
         <p><a href="/cart/">Your cart</a></p>
-        <p><a href="/cart/#contact">Contact form</a></p>
+        <p><a href="/contact/">Contact us</a></p>
       </div>
     </div>
     <p class="note">Reference only. Always confirm dimensions against the physical part before ordering.</p>
@@ -242,6 +245,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
 
 <script src="/assets/cart.js"></script>
 <script src="/assets/site-nav.js"></script>
+<script src="/assets/part-request.js"></script>
 <script>
 (function () {
   'use strict';
@@ -301,7 +305,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
     load().then(function () {
       if (input.value.trim() !== q) return;
       var hits = find(q), cats = {};
-      if (!hits.length) { show('<div class="empty"><b>No parts match "' + esc(q) + '".</b><br>Check the number, or <a href="/cart/#contact">send it to us</a> and we\'ll find the Lucas match.</div>'); return; }
+      if (!hits.length) { show('<div class="empty"><b>No parts match "' + esc(q) + '".</b><br>Check the number, or <button type="button" class="ask" data-ask="' + esc(q) + '">ask us to find it</button> and we\'ll look for the Lucas match.</div>'); return; }
       hits.forEach(function (r) { cats[r[1]] = (cats[r[1]] || 0) + 1; });
       var chips = Object.keys(cats).sort(function (a, b) { return cats[b] - cats[a]; }).map(function (c) {
         var cat = DATA.cats[c]; return '<a href="' + cat[1] + '?q=' + encodeURIComponent(q) + '">' + esc(cat[0]) + ' <b>' + cats[c] + '</b></a>';
@@ -319,6 +323,12 @@ footer .rule{height:6px; background:var(--lucas-green);}
   input.addEventListener('focus', function () { load().catch(function () {}); if (input.value.trim().length > 1) run(); });
   form.addEventListener('submit', function (e) { e.preventDefault(); run(); var first = box.querySelector('li a'); if (first && find(input.value.trim()).length === 1) location.href = first.href; });
   document.addEventListener('click', function (e) { if (!form.contains(e.target) && !e.target.closest('[data-try]')) close(); });
+  // no match: hand the search to the "Can't find your part?" form at the bottom of the page
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ask]'); if (!b || !window.LucasPartRequest) return;
+    var q = b.getAttribute('data-ask'); close();
+    LucasPartRequest.prefill(/\d/.test(q) ? { oe: q } : { desc: q });
+  });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !box.hidden) { close(); input.focus(); } });
   Array.prototype.forEach.call(document.querySelectorAll('[data-try]'), function (b) {
     b.addEventListener('click', function () { input.value = b.getAttribute('data-try'); input.focus(); run(); });

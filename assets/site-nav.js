@@ -74,7 +74,7 @@
         '<a href="/"' + cls(onHome) + '>Home</a>' +
         '<div class="dd"><button type="button" aria-expanded="false">Catalogues <span class="caret"></span></button><div class="menu wide">' + catalogueMenu + '</div></div>' +
         '<a href="' + ABOUT_URL + '" target="_blank" rel="noopener">About Lucas</a>' +
-        '<a href="/cart/#contact">Contact us</a>' +
+        '<a href="/contact/"' + cls(path.indexOf('/contact/') === 0) + '>Contact us</a>' +
       '</div>' +
     '</div></nav>';
 

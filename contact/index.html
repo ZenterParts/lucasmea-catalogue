@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact us | Lucas MEA online catalogues</title>
+<meta name="description" content="Contact Lucas MEA: email, phone and address in Jebel Ali Freezone, Dubai. Can't find a part? Send us the OE number or vehicle details and we'll find the Lucas match.">
+<meta property="og:title" content="Contact Lucas MEA">
+<meta property="og:description" content="Can't find a part? Send us the OE number or vehicle details and we'll find the Lucas match.">
+<meta property="og:image" content="https://lucasmeacatalogue.com/assets/home/og.jpg">
+<meta name="theme-color" content="#00954C">
+<link rel="icon" type="image/png" href="/assets/icon-gas-springs.png">
+<link rel="stylesheet" href="/assets/lucas-brand.css">
+<link rel="stylesheet" href="/assets/lucas-header.css">
+<style>
+*{box-sizing:border-box;}
+body{margin:0; background:#fff; color:var(--lucas-black); font-family:var(--lucas-font); font-size:17px; line-height:1.45;}
+.wrap{max-width:1280px; margin:0 auto; padding:0 clamp(16px,4vw,48px);}
+.head{padding:clamp(32px,5vw,64px) 0 clamp(28px,4vw,48px);}
+.head h1{margin:0 0 14px; font-weight:400; text-transform:uppercase; font-size:clamp(2.6rem,6vw,5rem); line-height:.95; color:#000;}
+.head p{margin:0; max-width:40em; font-size:1.1rem; color:#3d3d3d;}
+.ways{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(12px,2vw,24px); padding-bottom:clamp(36px,5vw,64px);}
+.way{border-top:2px solid var(--lucas-green); padding-top:16px;}
+.way h2{margin:0 0 6px; font-size:1.1rem; font-weight:600; color:#000;}
+.way p{margin:0 0 4px; color:#3d3d3d;}
+.way a{color:var(--lucas-green-dark); font-weight:600;}
+footer{background:#000; color:#d9d9d9;}
+footer .wrap{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px 24px; padding-top:28px; padding-bottom:28px;}
+footer a{color:#fff;}
+footer .strap{color:#fff; font-weight:700; font-size:1.25rem;}
+footer .rule{height:6px; background:var(--lucas-green);}
+@media (max-width:900px){ .ways{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:520px){ .ways{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<header class="lx-head">
+  <a class="lx-home" href="/" aria-label="Lucas online catalogues home"><img src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
+  <p class="lx-tag">Every Box Tells a Story</p>
+</header>
+<div id="site-nav" style="min-height:60px;background:#000"></div>
+
+<main>
+  <section class="head">
+    <div class="wrap">
+      <h1>Contact us</h1>
+      <p>Questions about a part, prices or availability? Get in touch, or use the form below if you can't find the part you need in our catalogues.</p>
+    </div>
+  </section>
+  <div class="wrap">
+    <div class="ways">
+      <div class="way"><h2>Email</h2><p><a href="mailto:info@lucasmeaparts.com">info@lucasmeaparts.com</a></p></div>
+      <div class="way"><h2>Phone</h2><p><a href="tel:+97142968166">+971 4 296 8166</a></p></div>
+      <div class="way"><h2>Address</h2><p>S3B4SR05, Jebel Ali Freezone Authority<br>Dubai, United Arab Emirates</p></div>
+      <div class="way"><h2>Request a price</h2><p>Found your parts? Add them to the <a href="/cart/">cart</a> and send one request for price.</p></div>
+    </div>
+  </div>
+  <div data-part-request></div>
+</main>
+
+<footer>
+  <div class="rule"></div>
+  <div class="wrap">
+    <span>Enquiries: <a href="mailto:info@lucasmeaparts.com">info@lucasmeaparts.com</a> · <a href="https://www.lucasmeaparts.com" target="_blank" rel="noopener">lucasmeaparts.com</a></span>
+    <span class="strap">Our range goes further.</span>
+  </div>
+</footer>
+
+<script src="/assets/cart.js"></script>
+<script src="/assets/site-nav.js"></script>
+<script src="/assets/part-request.js"></script>
+</body>
+</html>
