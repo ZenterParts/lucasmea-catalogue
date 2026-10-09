@@ -297,7 +297,7 @@
     a.appendChild(img);
   }
 
-  // Arriving from the home page search (e.g. /oil-filters/?q=hilux): put the search in the catalogue's own box
+  // Arriving from the home page search (e.g. /filters/?q=hilux): put the search in the catalogue's own box
   function prefillSearch() {
     var q = '';
     try { q = new URLSearchParams(location.search).get('q') || ''; } catch (e) {}
