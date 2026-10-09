@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lucas Starter Motor Catalogue</title>
+<meta name="description" content="Lucas starter motors: search by Lucas part number, OE number, vehicle make or model.">
+<link rel="stylesheet" href="/assets/lucas-brand.css">
+<link rel="stylesheet" href="/assets/lucas-header.css">
+<style>
+/* Layout: Lucas catalogue template — green brand bar, white hero, dark type tiles, sticky finder, product cards. Single light look, matching the horn catalogue. */
+:root{
+  /* Lucas Brand Standards 2025: Primary Pantone 355 = #00954C, Secondary = black */
+  --green:#00954C; --green-dk:#007a3e; --green-tint:#e6f4ed;
+  --ink:#000000; --grey:#4d4d4d; --grey-lt:#808080; --panel:#f1f2f3; --line:#e2e3e5; --bg:#ffffff; --dark:#000000; --dark-2:#141414;
+  --font:"League Spartan",Futura,"Century Gothic","Trebuchet MS",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);color:var(--ink);background:var(--bg);font-size:16px;line-height:1.25;letter-spacing:-0.014em;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%}
+button,input,select{font:inherit;color:inherit;letter-spacing:inherit}
+.wrap{max-width:1440px;margin:0 auto;padding:0 24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+/* header: Lucas brand bar, as in the Lucas catalogue template */
+.brandbar{background:var(--green);position:relative}
+.brandbar .campaign-head{position:absolute;top:50%;right:clamp(16px,3vw,48px);transform:translateY(-50%);margin:0;color:#fff;font-weight:700;font-size:clamp(1rem,2.3vw,2.1rem);line-height:1;letter-spacing:0}
+.brandbar img{display:block;width:auto;height:clamp(56px,7.5vw,104px)}
+.separator{height:2px;background:#fff}
+.campaign-mobile{display:none;margin:0 0 16px;font-weight:700;text-transform:uppercase;letter-spacing:.014em;color:var(--green);font-size:clamp(1.1rem,1.8vw,1.45rem);line-height:1.1}
+@media (max-width:700px){.brandbar .campaign-head{display:none}.campaign-mobile{display:block}}
+
+/* hero */
+.hero{padding:48px 0 40px;background:#fff}
+.hero h1{font-weight:400;font-size:clamp(2.2rem,4.4vw,3.6rem);line-height:1.05;text-transform:uppercase;letter-spacing:0;margin:0 0 18px;text-wrap:balance}
+.hero p.lead{margin:0 0 26px;font-size:1.08rem;line-height:1.3;color:var(--grey);max-width:46em}
+.stats{display:flex;flex-wrap:wrap;border-top:2px solid var(--green)}
+.stat{padding:14px 28px 0 0;margin-right:28px;border-right:1px solid #cccccc}
+.stat:last-child{border-right:0}
+.stat b{display:block;color:var(--green);font-size:1.9rem;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.stat span{font-size:.9rem;color:var(--grey)}
+
+/* dark section */
+.dark{background:var(--dark);color:#fff;padding:64px 0 72px}
+.dark h2,.sec-h{color:var(--green);font-weight:400;font-size:1.7rem;text-transform:uppercase;letter-spacing:0;line-height:1.05}
+.dark .intro{max-width:760px;margin-bottom:34px}
+.dark .intro p{color:#cfd0d2;font-size:15.5px;margin-top:12px;line-height:1.35}
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.type{background:var(--dark-2);border:1px solid #2c2c2c;text-align:left;cursor:pointer;display:flex;flex-direction:column;transition:border-color .15s,transform .15s;color:#fff;padding:0}
+.type:hover,.type:focus-visible{border-color:var(--green);transform:translateY(-2px);outline:none}
+.type .ph{background:#fff;aspect-ratio:5/3;display:flex;align-items:center;justify-content:center;overflow:hidden;width:100%}
+.type .ph img{height:100%;width:auto;object-fit:contain}
+.type .tx{padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px;flex:1;width:100%}
+.type h3{font-size:20px;font-weight:600;color:#fff;line-height:1.2}
+.type .k{font-size:13.5px;color:#a9aaad;line-height:1.35}
+.type .row{display:flex;justify-content:space-between;font-size:13.5px;color:#d6d7d9;border-top:1px solid #303030;padding-top:6px}
+.type .row b{font-weight:600;color:#fff}
+.type .go{margin-top:auto;padding-top:10px;color:var(--green);font-weight:600;font-size:14px}
+
+/* finder */
+.finder{padding:56px 0 80px}
+.finder .head{margin-bottom:22px}
+.finder .head p{color:var(--grey);font-size:15px;margin-top:6px;max-width:60em;line-height:1.35}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(255,255,255,.97);backdrop-filter:saturate(1.4) blur(6px);padding:14px 0 12px;border-bottom:1px solid var(--line)}
+.search{display:flex;align-items:center;border:2px solid var(--ink);height:56px;background:#fff;transition:border-color .15s}
+.search:focus-within{border-color:var(--green)}
+.search svg{flex:0 0 auto;margin:0 14px 0 18px;color:var(--grey-lt)}
+.search input{flex:1;border:0;outline:0;height:100%;font-size:17px;background:transparent;min-width:0}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.search input::placeholder{color:#9a9b9e}
+.search kbd{font-family:inherit;font-size:12px;border:1px solid var(--line);padding:2px 7px;color:var(--grey-lt);margin-right:10px}
+.search .clr{border:0;background:none;cursor:pointer;color:var(--grey);padding:0 16px;height:100%;font-size:14px;display:none}
+.search.has .clr{display:block}
+.search.has kbd{display:none}
+.filters{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:12px;align-items:center}
+.fg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fg > span,.fg > label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--grey-lt);margin-right:4px;font-weight:600}
+.chip{border:1px solid #cfd0d3;background:#fff;padding:5px 12px;font-size:14px;cursor:pointer;line-height:1.3;transition:all .12s}
+.chip:hover{border-color:var(--green);color:var(--green-dk)}
+.chip[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
+.sel{border:1px solid #cfd0d3;background:#fff;padding:5px 30px 5px 10px;font-size:14px;cursor:pointer;line-height:1.3;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#4d4d4d 50%),linear-gradient(135deg,#4d4d4d 50%,transparent 50%);background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat;max-width:100%}
+.sel.on{border-color:var(--green);color:var(--green-dk);font-weight:600}
+.meta{display:flex;justify-content:space-between;align-items:center;margin:18px 0 14px;gap:12px;flex-wrap:wrap}
+.count{font-size:15px;color:var(--grey)}
+.count b{color:var(--ink);font-weight:600}
+.view{display:flex;border:1px solid #cfd0d3}
+.view button{border:0;background:#fff;padding:6px 14px;font-size:14px;cursor:pointer}
+.view button[aria-pressed=true]{background:var(--ink);color:#fff}
+.reset{border:0;background:none;color:var(--green-dk);font-weight:600;cursor:pointer;font-size:14px;margin-left:12px;text-decoration:underline;text-underline-offset:3px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+.card{border:1px solid var(--line);display:flex;flex-direction:column;background:#fff;transition:box-shadow .15s,border-color .15s;min-width:0}
+.card:hover{border-color:#cfd0d3;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+.card .ph{background:#fff;height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom:1px solid var(--line)}
+.card .ph img{height:100%;width:auto;max-width:100%;object-fit:contain}
+.card .ph .noimg{font-size:12px;color:var(--grey-lt);text-transform:uppercase;letter-spacing:.08em}
+.card .bd{padding:16px 18px 14px;min-width:0;display:flex;flex-direction:column;flex:1}
+.card .t1{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.code{color:var(--green);font-weight:700;font-size:22px;letter-spacing:.3px;line-height:1.1;font-variant-numeric:tabular-nums}
+.copy{border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12px;padding:3px 9px;color:var(--grey);white-space:nowrap}
+.copy:hover{border-color:var(--green);color:var(--green-dk)}
+.card .tp{font-size:13px;color:var(--grey);margin-top:3px}
+.card .ds{font-weight:600;font-size:14.5px;margin-top:8px;line-height:1.3}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin-top:10px;font-size:13.5px}
+.kv dt{color:var(--grey);white-space:nowrap}
+.kv dd{text-align:right;font-weight:500;font-variant-numeric:tabular-nums;min-width:0}
+.blk{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:13.5px}
+.xh{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey-lt);font-weight:600;margin-bottom:5px}
+.oes{display:flex;flex-wrap:wrap;gap:4px 10px;font-weight:600;font-variant-numeric:tabular-nums}
+.xr{display:flex;justify-content:space-between;gap:10px;padding:1px 0}
+.xr span{color:var(--grey);font-size:12.5px;letter-spacing:.04em}
+.xr b{font-weight:600;white-space:nowrap}
+.makes{display:flex;flex-wrap:wrap;gap:5px}
+.mk{font-size:12.5px;background:var(--green-tint);color:var(--green-dk);padding:2px 8px;font-weight:600}
+.more{border:0;background:none;color:var(--green-dk);font-weight:600;cursor:pointer;font-size:13px;padding:0;text-decoration:underline;text-underline-offset:3px}
+details.fit{margin-top:8px}
+details.fit summary{cursor:pointer;color:var(--green-dk);font-weight:600;font-size:13px;list-style:none}
+details.fit summary::-webkit-details-marker{display:none}
+details.fit summary::before{content:"+ "}
+details.fit[open] summary::before{content:"– "}
+.fitlist{margin-top:6px;max-height:260px;overflow:auto;border:1px solid var(--line);font-size:12.5px;line-height:1.35}
+.fitlist div{padding:5px 8px;border-bottom:1px solid var(--line)}
+.fitlist div:last-child{border-bottom:0}
+.fitlist div:nth-child(even){background:#f6f6f7}
+mark{background:#fff1a8;color:inherit;padding:0 1px}
+
+table.list{width:100%;border-collapse:collapse;font-size:14px}
+.list th{background:var(--green);color:#fff;text-align:left;font-weight:600;padding:10px 12px;font-size:13.5px;white-space:nowrap;position:sticky;top:0}
+.list td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.list tbody tr:nth-child(even) td{background:#f6f6f7}
+.list td.c{color:var(--green);font-weight:700;white-space:nowrap}
+.list td.im img{width:56px;height:56px;object-fit:contain;background:#fff}
+.list td.oe{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;min-width:120px}
+.list td.ds{min-width:260px}
+.list td.mkc{min-width:120px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line)}
+
+.pager{display:flex;justify-content:center;margin-top:28px}
+.pager button{border:2px solid var(--ink);background:#fff;padding:12px 26px;font-weight:600;font-size:15px;cursor:pointer}
+.pager button:hover{border-color:var(--green);color:var(--green-dk)}
+.empty{padding:56px 24px;text-align:center;border:1px dashed #cfd0d3;color:var(--grey)}
+.empty b{display:block;color:var(--ink);font-size:20px;font-weight:600;margin-bottom:6px}
+
+/* reading the specs */
+.specs{background:#f4f4f5;padding:56px 0}
+.specs table{width:100%;border-collapse:collapse;margin-top:22px;font-size:15px;background:#fff}
+.specs th,.specs td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.specs thead th{background:var(--ink);color:#fff;font-weight:600;font-size:14px}
+.specs tbody th{font-weight:600;white-space:nowrap}
+.specs .note{font-size:13px;color:var(--grey);margin-top:12px;max-width:70em;line-height:1.4}
+
+footer{border-top:1px solid var(--line)}
+.footer-in{max-width:1440px;margin:0 auto;padding:20px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;color:var(--green);font-weight:700;letter-spacing:.014em}
+.footer-in a{color:inherit;text-decoration:none}
+.footer-in a:hover{text-decoration:underline}
+.strap{text-transform:uppercase}
+.footbar{height:10px;background:var(--green)}
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 18px;font-size:14px;opacity:0;transition:all .2s;pointer-events:none;z-index:20}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1020px){.types{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){
+  .wrap,.footer-in{padding-left:16px;padding-right:16px}
+  .hero{padding:36px 0}
+  .stat{padding-right:16px;margin-right:16px}
+  .stat b{font-size:24px}
+  .types{grid-template-columns:1fr 1fr;gap:12px}
+  .type .tx{padding:12px}
+  .type h3{font-size:16px}
+  .type .k{display:none}
+  .grid{grid-template-columns:1fr}
+  .code{font-size:19px}
+  .search{height:50px}
+  .search kbd{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* hero with product + packaging shot, as on the horn and wiper blade catalogues */
+.hero-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center}
+.hshot img{width:100%;height:auto;display:block}
+@media (max-width:900px){.hero-in{grid-template-columns:1fr;gap:24px}}
+.list td.ty{white-space:nowrap}
+.list .gr{color:var(--grey);font-size:12px;letter-spacing:.04em}
+.list td .oe{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px}
+.specs h3{font-size:18px;font-weight:600;margin:30px 0 0}
+
+
+/* starters & alternators: offers (condition + country of origin) */
+.hero-in:not(:has(.hshot img)){grid-template-columns:1fr}
+.offers{margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.offer{display:flex;align-items:center;gap:8px;padding:5px 0;flex-wrap:wrap}
+.offer + .offer{border-top:1px dashed var(--line)}
+.offer .sku{font-weight:700;font-variant-numeric:tabular-nums;min-width:92px}
+.cond{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px 1px;border:1px solid var(--ink);line-height:1.3}
+.cond.N{background:var(--ink);color:#fff}
+.cond.R{background:#fff;color:var(--ink)}
+.org{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:2px 8px 1px;background:var(--green-tint);color:var(--green-dk);line-height:1.3;white-space:nowrap}
+.org b{font-weight:700;letter-spacing:.06em}
+.offer .cadd{margin-left:auto}
+.list td.sku{font-weight:700;white-space:nowrap}
+.list td.lp{color:var(--green);font-weight:700;white-space:nowrap}
+.origins{background:#fff;padding:56px 0 8px}
+.origins .wrap > p{color:var(--grey);font-size:15px;margin-top:8px;max-width:62em;line-height:1.4}
+.ogrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:22px}
+.obox{border:1px solid var(--line);padding:16px 18px}
+.obox h3{font-size:17px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.obox p{font-size:14px;color:var(--grey);line-height:1.4}
+.obox.soon{background:#f6f6f7}
+.obox.soon h3::after{content:"Coming soon";font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:#ededed;color:#6d6e71;padding:2px 6px 0;margin-left:auto}
+@media (max-width:900px){.ogrid{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<header class="lx-head">
+  <a class="lx-home" href="/" aria-label="Lucas online catalogues home"><img src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
+  <p class="lx-tag">Every Box Tells a Story</p>
+</header>
+<div id="site-nav" style="min-height:60px;background:#000"></div>
+<section class="hero">
+  <div class="wrap hero-in">
+    <div class="htx">
+      <h1>Starter motor<br>catalogue</h1>
+      <p class="campaign-mobile">Every Box Tells a Story</p>
+      <p class="lead">Lucas starter motors for passenger cars, SUVs and light commercial vehicles. Search by Lucas number, OE number or vehicle, then check the voltage, power, pinion teeth and rotation before you order. Choose new or remanufactured, and the country of origin that suits you.</p>
+      <div class="stats" id="stats"></div>
+    </div>
+    <!-- Hero product image: add <img src="/assets/home/starters.jpg" alt="..."> inside this div -->
+    <div class="hshot"></div>
+  </div>
+</section>
+
+<section class="dark" id="types">
+  <div class="wrap">
+    <div class="intro">
+      <h2>Choose by power</h2>
+      <p>Starter motors grouped by rated power. Pick one to see every part number in it.</p>
+    </div>
+    <div class="types" id="typeTiles"></div>
+  </div>
+</section>
+
+<section class="finder" id="finder">
+  <div class="wrap">
+    <div class="head">
+      <h2 class="sec-h">Find a part</h2>
+      <p>Type a Lucas number, an OE number, a vehicle make or a model. Spaces and dashes are ignored, so <em>0061515901</em> finds Mercedes-Benz 006-151-59-01. Combine words to narrow down, for example <em>golf 2.0</em>.</p>
+    </div>
+    <div class="bar" id="bar">
+      <label class="search" id="searchBox">
+        <span class="sr">Search</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search Lucas no., OE no., make or model">
+        <kbd>/</kbd>
+        <button class="clr" id="clr" type="button" aria-label="Clear search">Clear</button>
+      </label>
+      <div class="filters">
+        <div class="fg" data-f="grp"><span>Power</span></div>
+        <div class="fg" data-f="cond"><span>Condition</span></div>
+        <div class="fg" data-f="org"><span>Origin</span></div>
+        <div class="fg"><label for="mkSel">Make</label><select id="mkSel" class="sel"></select></div>
+        <div class="fg"><label for="xSel">Teeth</label><select id="xSel" class="sel"></select></div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="count" aria-live="polite" id="count"></div>
+      <div class="view" role="group" aria-label="View">
+        <button type="button" data-v="cards" aria-pressed="true">Cards</button>
+        <button type="button" data-v="table" aria-pressed="false">Table</button>
+      </div>
+    </div>
+    <div id="results"></div>
+    <div class="pager" id="pager"></div>
+  </div>
+</section>
+
+<section class="origins" id="origins">
+  <div class="wrap">
+    <h2 class="sec-h">Condition and country of origin</h2>
+    <p>Each Lucas part number is one product with one set of fitting specifications. It can be offered new or remanufactured, and from more than one country of origin, so you can choose the option that suits your price and quality needs. The order code shows the condition: <b>N</b> for new, <b>R</b> for remanufactured.</p>
+    <div class="ogrid">
+      <div class="obox"><h3><span class="org"><b>CN</b> China</span></h3><p>New units. Available now across the range.</p></div>
+      <div class="obox soon"><h3><span class="org"><b>MY</b> Malaysia</span></h3><p>Remanufactured and new units for selected applications.</p></div>
+      <div class="obox soon"><h3><span class="cond R">Reman</span></h3><p>Remanufactured: a used unit fully stripped, with wear parts replaced as standard and every unit tested to the original specification.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="specs" id="specs">
+  <div class="wrap">
+    <h2 class="sec-h">Technical data</h2>
+    <div class="tablewrap" style="border:0"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><th>Lucas part number</th><td>LRSG followed by four digits. One number per starter motor, whoever makes it.</td></tr><tr><th>Order code</th><td>The Lucas part number plus the condition: N for new (LRSG0001N), R for remanufactured (LRSG0001R). Quote this code when you order.</td></tr><tr><th>Origin</th><td>Country where the unit is made: CN China, MY Malaysia.</td></tr><tr><th>Voltage</th><td>System voltage: 12 V for cars and light commercial, 24 V for trucks and heavy equipment.</td></tr><tr><th>Power</th><td>Rated output of the starter in kilowatts. Small differences between makers (for example 0.9 and 1.0 kW) are normal for the same application.</td></tr><tr><th>Pinion teeth</th><td>Number of teeth on the drive pinion. It must match the flywheel or flexplate, so always check it against the old unit.</td></tr><tr><th>Rotation</th><td>CW clockwise or CCW counter-clockwise, viewed from the pinion (drive) end.</td></tr><tr><th>Type / code</th><td>Manufacturer type reference where known, useful for matching the old unit.</td></tr></tbody></table></div>
+    <p class="note">Vehicle lists come from the manufacturer’s application data. Always check the OE number, pinion teeth and rotation against the old unit before ordering. Specifications may change without notice.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-in">
+    <a href="https://www.lucasmeaparts.com" target="_blank" rel="noopener">lucasmeaparts.com</a>
+    <span class="strap">Our range goes further.</span>
+  </div>
+  <div class="footbar"></div>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+<script>
+const DATA = [{"l":"LRSG0001","oe":["006-151-59-01"],"x":[],"mk":["Mercedes-Benz"],"f":["Mercedes-Benz C-Class 3.0L (2009–2012)","Mercedes-Benz C-Class 3.5L (2009–2011)","Mercedes-Benz Cl-Class 5.5L (2009–2010)","Mercedes-Benz Cls-Class 5.5L (2009–2011)","Mercedes-Benz E-Class 3.0L (2011)","Mercedes-Benz E-Class 3.5L (2010–2011)","Mercedes-Benz E-Class 5.5L (2009–2011)","Mercedes-Benz G-Class 5.5L (2009–2015)","Mercedes-Benz Gl-Class 4.7L (2009–2012)","Mercedes-Benz Gl-Class 5.5L (2009–2012)","Mercedes-Benz Glk-Class 5.5L (2013)","Mercedes-Benz Ml-Class 3.5L (2010–2012)","Mercedes-Benz Ml-Class 5.5L (2009–2011)","Mercedes-Benz R-Class 3.5L (2009–2011)","Mercedes-Benz S-Class 5.4L (2009–2011)","Mercedes-Benz Sl-Class 5.4L (2009–2012)","Mercedes-Benz Slk-Class 3.5L (2010–2011)","Mercedes-Benz Slk-Class 5.4L (2010–2011)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"10","rot":"CW","code":"R70-M45"},"v":[{"s":"LRSG0001N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 10T, CW"},{"l":"LRSG0002","oe":["06B-911-023A"],"x":[],"mk":["Audi","Volkswagen"],"f":["Audi A4 1.8L (2005–2006)","Audi A4 2.0L (2005–2009)","Audi A4 Quattro 1.8L (2005)","Audi A4 Quattro 2.0L (2005–2009)","Volkswagen Passat 1.8L (2005)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"9","rot":"CW","code":"R70-M10"},"v":[{"s":"LRSG0002N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 9T, CW"},{"l":"LRSG0003","oe":["02M-911-023G"],"x":[],"mk":["Audi","Volkswagen"],"f":["Audi A3 2.0L (2006–2013)","Audi A3 Quattro 2.0L (2009)","Audi TT 2.0L (2009)","Audi TT Quattro 2.0L (2009–2010)","Volkswagen Beetle 2.0L (2012–2013)","Volkswagen CC 2.0L (2009–2016)","Volkswagen Eos 2.0L (2007–2011)","Volkswagen Golf 2.0L (2012–2013)","Volkswagen GTI 2.0L (2006–2014)","Volkswagen Jetta 2.0L (2006–2015)","Volkswagen Passat 2.0L (2006–2010)","Volkswagen Passat 3.6L (2006)","Volkswagen R32 3.2L (2008)","Volkswagen Tiguan 2.0L (2009–2016)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"10","rot":"CCW","code":"BOPG070/ RF70-M25"},"v":[{"s":"LRSG0003N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 10T, CCW"},{"l":"LRSG0004","oe":["02A-911-023L"],"x":[],"mk":["Volkswagen"],"f":["Volkswagen Beetle 2.0L w/MT (1998–2005)","Volkswagen Golf 1.8L w/MT (2000–2006)","Volkswagen Golf 2.0L w/MT (1998–2003)","Volkswagen Jetta 1.8L w/MT (2000–2005)","Volkswagen Jetta 2.0L w/MT (1999–2005)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"10","rot":"CCW"},"v":[{"s":"LRSG0004N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 10T, CCW"},{"l":"LRSG0005","oe":["020-911-023F"],"x":[],"mk":["Volkswagen"],"f":["Volkswagen Beetle 1.8L w/AT (1999–2005)","Volkswagen Beetle 2.0L w/AT (1998–2005)","Volkswagen Golf 1.8L (1996–2006)","Volkswagen Golf 2.0L (1999–2006)","Volkswagen Jetta 1.8L (1996–2005)","Volkswagen Jetta 2.0L (1999–2005)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"9","rot":"CCW","code":"BOPG074(RF74-M50"},"v":[{"s":"LRSG0005N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 9T, CCW"},{"l":"LRSG0006","oe":["02T-911-024"],"x":[],"mk":["Skoda","Volkswagen"],"f":["Skoda Fabia 1.9L SDI (2004–On)","Volkswagen Golf V 2.0L SDI (2004–On)","Volkswagen Polo 1.4L TDI (2005–On)","Volkswagen Polo 1.9L SDI (2005–On)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"10","rot":"CCW"},"v":[{"s":"LRSG0006N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 10T, CCW"},{"l":"LRSG0007","oe":["02Z-911-024F"],"x":[],"mk":["Audi","Volkswagen"],"f":["Audi A3 1.4 TFSI/115HP (2016–On)","Audi A3 1.4 TFSI/122HP (2012–2016)","Audi A3 1.4 TFSI/125HP (2013–2016)","Audi A3 1.8 TFSI/180HP (2012–2016)","Audi A3 Quattro 1.8 TFSI/180HP (2012–2016)","Volkswagen Beetle 1.8L (2014–2016)","Volkswagen Golf 1.4L (2019–On)","Volkswagen Golf 1.8L (2016–2018)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"13","rot":"CCW"},"v":[{"s":"LRSG0007N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 13T, CCW"},{"l":"LRSG0008","oe":["070-911-023B"],"x":[],"mk":["Volkswagen"],"f":["Volkswagen Touareg 2.5L TDI (2003–On)"],"i":-1,"s":{"volt":"12","kw":"2.2","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0008N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.2 kW, 9T, CW"},{"l":"LRSG0009","oe":["28100-0L070"],"x":[],"mk":["Toyota"],"f":["Toyota Hilux 3.0L (2005–2007)","Toyota Hi-Lux 2.5L D-4D (2005–On)","Toyota Hi-Lux 3.0L D-4D (2005–On)"],"i":-1,"s":{"volt":"12","kw":"2.2","teeth":"9","rot":"CW","code":"R78-M55"},"v":[{"s":"LRSG0009N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.2 kW, 9T, CW"},{"l":"LRSG0010","oe":["28100-0Q021"],"x":[],"mk":["Toyota"],"f":["Toyota Aygo 1.0L (2005–On)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"9","rot":"CW","code":"R70-M10"},"v":[{"s":"LRSG0010N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 9T, CW"},{"l":"LRSG0011","oe":["PRC5109N"],"x":[],"mk":[],"f":[],"i":-1,"s":{},"v":[{"s":"LRSG0011N","c":"N","o":"CN"}],"d":"Starter motor (specification to be confirmed)"},{"l":"LRSG0012","oe":["005-151-39-01"],"x":[],"mk":["Mercedes-Benz"],"f":["Mercedes-Benz C230 1.8L (2003–2004)","Mercedes-Benz C250 1.8L (2012–2015)","Mercedes-Benz SLK250 1.8L (2012–2014)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0012N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 9T, CW"},{"l":"LRSG0013","oe":["278-906-04-00"],"x":[],"mk":["Mercedes-Benz"],"f":["Mercedes-Benz AMG GT 4.0L (2017–2019)","Mercedes-Benz C-Class 4.0L (2015–2019)","Mercedes-Benz Cl-Class 5.5L (2012–2014)","Mercedes-Benz Cls-Class 4.6L (2012–2018)","Mercedes-Benz Cls-Class 5.5L (2012–2013)","Mercedes-Benz E-Class 4.6L (2014–2017)","Mercedes-Benz E-Class 5.5L (2012–2013)","Mercedes-Benz G-Class 4.0L (2019–2020)","Mercedes-Benz G-Class 5.5L (2013–2018)","Mercedes-Benz Gl-Class 5.5L (2013–2016)","Mercedes-Benz Gle-Class 5.5L (2016–2019)","Mercedes-Benz Gls-Class 4.6L (2017–2019)","Mercedes-Benz Gls-Class 5.5L (2017–2018)","Mercedes-Benz Ml-Class 5.5L (2012–2015)","Mercedes-Benz S-Class 4.6L 214-17","Mercedes-Benz S-Class 5.5L (2011–2014)","Mercedes-Benz Sl-Class 4.6L (2013–2019)","Mercedes-Benz Sl-Class 5.5L (2013–2019)","Mercedes-Benz Slk-Class 5.5L (2012–2016)","Mercedes-Benz CL63 5.5L (2010–On)","Mercedes-Benz CLS500 4.7L (2011–On)","Mercedes-Benz CLS63 5.5L AMG (2011–On)","Mercedes-Benz E500 4.7L (2011–On)","Mercedes-Benz E550 4.7L (2011–On)","Mercedes-Benz E63 5.5L AMG (2011–On)","Mercedes-Benz S500 4.7L (2011–On)","Mercedes-Benz S63 5.5L AMG (2011–On)","Mercedes-Benz SL63 5.5L AMG (2012–On)","Mercedes-Benz SLK55 5.4L AMG (2012–On)"],"i":-1,"s":{"volt":"12","kw":"2.0","teeth":"10","rot":"CW","code":"SL74-L"},"v":[{"s":"LRSG0013N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.0 kW, 10T, CW"},{"l":"LRSG0014","oe":["A0061516001"],"x":[],"mk":["Mercedes-Benz"],"f":["Mercedes-Benz E-Class 3.0L (2011)","Mercedes-Benz E-Class 3.5L (2010–2011)","Mercedes-Benz Glk-Class 3.5L (2010–2013)","Mercedes-Benz S-Class 5.4L (2007–2011)","Mercedes-Benz C230 2.5L (2007–On)","Mercedes-Benz C250 2.5L 4-MATIC (2007–On)","Mercedes-Benz C280 3.0L (2007–On)","Mercedes-Benz C300 3.0L (2007–On)","Mercedes-Benz C350 3.5L (2007–On)","Mercedes-Benz CL500 5.5L (2006–On)","Mercedes-Benz E300 3.0L (2009–On)","Mercedes-Benz E350 3.5L (2009–On)","Mercedes-Benz E500 5.5L (2009–On)","Mercedes-Benz GLK350 3.5L (2008–On)","Mercedes-Benz S280 3.0L (2006–On)","Mercedes-Benz S300 3.0L (2006–On)","Mercedes-Benz S350 3.5L (2005–On)","Mercedes-Benz S400 3.5L Hybrid (2009–On)","Mercedes-Benz S450 4.7L (2006–On)","Mercedes-Benz S500 5.5L (2005–On)","Mercedes-Benz SL280 3.0L (2008–2012)","Mercedes-Benz SL300 3.0L (2009–2012)","Mercedes-Benz SL350 3.5L (2006–2012)","Mercedes-Benz SLK280 3.0L (2005–2011)","Mercedes-Benz SLK300 3.0L (2009–2011)","Mercedes-Benz SLK350 3.5L (2004–2011)"],"i":-1,"s":{"volt":"12","kw":"1.1","teeth":"10","rot":"CW","code":"R70-M35"},"v":[{"s":"LRSG0014N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.1 kW, 10T, CW"},{"l":"LRSG0015","oe":["9168267"],"x":[],"mk":["Volvo"],"f":["Volvo S80 2.8L (1999–2002)","Volvo S80 2.9L (1999–2005)","Volvo XC90 2.9L (2003–2005)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"9","rot":"CW","code":"DW"},"v":[{"s":"LRSG0015N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 9T, CW"},{"l":"LRSG0016","oe":["36100-2G200-PMA","36100-2G200","36100-2G200RU","36100-2G210","36100-2G400","61003131"],"x":["DELCO 8000357","DELCO 8000621","LESTER 6974","LESTER 6995","LESTER 34005","WAI 6995N","BBB 6995","BBB N6995","REMY 25009","REMY 96000","MPA 6975S","DIXIE S-1513","WILSON 91-01-4800","AC DELCO 336-2058","ATELIER DYNAMO S6995","ARROWHEAD SDR0434","J & N 410-12473","J & N 410-12602","PIC 140-6026B","PIC 140-6112","KRAUF STD2200"],"mk":["Hyundai","Kia"],"f":["Hyundai Genesis Coupe 2.0L (2013–2014)","Hyundai Santa Fe 2.0L (2013–2014)","Hyundai Santa Fe 2.4L (2014)","Hyundai Sonata 2.0L (2011–2015)","Hyundai Sonata 2.4L (2014–2015)","Hyundai Tucson 2.0L (2011–2013)","Hyundai Tucson 2.4L (2011–2015)","Kia Forte 2.0L, 2.4L (2011–2013)","Kia Forte Koup 2.0L, 2.4L (2011–2013)","Kia Forte5 2.0L, 2.4L (2012–2013)","Kia Optima 2.0L (2012–2014)","Kia Optima 2.4L (2014)","Kia Rondo 2.0L (2010)","Kia Sorento 2.4L (2014–2015)","Kia Sportage 2.0L, 2.4L (2011–2014)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"11","rot":"CW","code":"DRPGD6"},"v":[{"s":"LRSG0016N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 11T, CW"},{"l":"LRSG0017","oe":["96184261"],"x":[],"mk":["Kia"],"f":["Kia RIO 1.6L w/AT (2011)","Kia RIO5 1.6L w/AT (2011)"],"i":-1,"s":{"volt":"12","kw":"0.9","teeth":"8","rot":"CW","code":"DRPGD6"},"v":[{"s":"LRSG0017N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 0.9 kW, 8T, CW"},{"l":"LRSG0018","oe":["36100-4A100","36100-4A150","36100-4A160","36100-4A200"],"x":["Lucas (legacy no.) LRS02784","DELCO 8000455","DELCO 8000534","AS S1106S","AS-PL UD18604S","ERA 220854","REMY EUROPE DRS0988","PSH 150.586.112","KRAUF STA4300","ELSTOCK 25-4457","AUTOELECTRO AEY2784","WOOD AUTO STR54197"],"mk":["Hyundai","Kia"],"f":["Hyundai H-1 2.5L CRDi (2010–On)","Kia K2500 2.5L TCi (2010–On)"],"i":-1,"s":{"volt":"12","kw":"2.2","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0018N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.2 kW, 11T, CW"},{"l":"LRSG0019","oe":["8971333690"],"x":[],"mk":["Opel"],"f":["Opel Astra, Corsa 1.5L 1.7L"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0019N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 9T, CW"},{"l":"LRSG0020","oe":["8-97172-211-0"],"x":[],"mk":["Nissan"],"f":["Nissan FD6 & FE6 Engines"],"i":-1,"s":{"volt":"24","kw":"4.0","teeth":"11","rot":"CCW"},"v":[{"s":"LRSG0020N","c":"N","o":"CN"}],"d":"Starter motor 24 V, 4.0 kW, 11T, CCW"},{"l":"LRSG0021","oe":["8-97365-824-0"],"x":[],"mk":["Isuzu","Opel","Vauxhall"],"f":["Isuzu D-Max 2.5L, 3.0L DSL (2002–On)","Isuzu Rodeo 2.5L, 3.0L DSL (2002–On)","Isuzu Pickup 2.5L, 3.0L DSL (2002–On)","Opel Campo 2.5L DSL (2001–On)","Vauxhall Brava 2.5L DSL (2001–On)"],"i":-1,"s":{"volt":"12","kw":"2.3","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0021N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.3 kW, 9T, CW"},{"l":"LRSG0022","oe":["8972236530"],"x":[],"mk":["Isuzu","Opel","Vauxhall"],"f":["Isuzu Campo 2.5L T DSL (1989–1997)","Opel Campo 2.5L T DSL (1989–1997)","Opel Campo 3.1L T DSL (1995–2001)","Opel Monterey 3.1L T DSL (1991–1997)","Vauxhall Monterey 3.1L T DSL (1994–1998)"],"i":-1,"s":{"volt":"12","kw":"2.8","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0022N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.8 kW, 9T, CW"},{"l":"LRSG0023","oe":["CY01-18-400"],"x":[],"mk":["Mazda"],"f":["Mazda 6 3.7L (2009–2010)","Mazda CX-9 3.5L (2007)","Mazda CX-9 3.7L (2008–2009)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"22","rot":"CCW"},"v":[{"s":"LRSG0023N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 22T, CCW"},{"l":"LRSG0024","oe":["MN176584"],"x":[],"mk":["Mitsubishi"],"f":["Mitsubishi Montero 3.8L (2003–2006)","Mitsubishi Pajero 3.5L (2003–On)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0024N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 8T, CW"},{"l":"LRSG0025","oe":["MR994325"],"x":[],"mk":["Mitsubishi"],"f":["Mitsubishi Lancer 2.0L (2003–2007)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0025N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 8T, CW"},{"l":"LRSG0026","oe":["56044735AB"],"x":[],"mk":["Jeep"],"f":["Jeep Commander 4.7L (2006–2008)","Jeep Grand Cherokee 4.7L (2005–2008)","Jeep Liberty 3.7L (2006–2007)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0026N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 10T, CW"},{"l":"LRSG0027","oe":["ZJ38-18-400"],"x":[],"mk":["Mazda"],"f":["Mazda 2 1.3L (2008–On)","Mazda 2 1.5L (2008–On)"],"i":-1,"s":{"volt":"12","kw":"1.0","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0027N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.0 kW, 10T, CW"},{"l":"LRSG0028","oe":["PY01-18-400"],"x":[],"mk":["Mazda"],"f":["Mazda 3 2.5L (2014)","Mazda 6 2.5L (2014–2015)","Mazda CX-5 2.5L (2014–2015)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0028N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 11T, CW"},{"l":"LRSG0029","oe":["1810A333"],"x":[],"mk":["Mitsubishi"],"f":["Mitsubishi Mirage 1.2L (2014–2018)","Mitsubishi Mirage G4 1.2L (2017–2018)","Mitsubishi Mirage 1.0L (2012–On)","Mitsubishi Mirage 1.2L (2012–On)","Mitsubishi Space Star 1.0L (2012–On)","Mitsubishi Space Star 1.2L (2012–On)"],"i":-1,"s":{"volt":"12","kw":"0.9","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0029N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 0.9 kW, 8T, CW"},{"l":"LRSG0030","oe":["183117860"],"x":[],"mk":["Chevrolet","Opel","Vauxhall"],"f":["Chevrolet Spark 1.4L (2016)","Chevrolet Spark 1.0L (2015–On)","Opel Adam 1.0L (2013–On)","Opel Astra K 1.4L (2015–On)","Opel Corsa E 1.0L (2014–On)","Opel Karl 1.0L (2014–On)","Vauxhall Adam 1.0L (2014–On)","Vauxhall Astra K 1.4L (2015–On)","Vauxhall Corsa E 1.0L (2014–On)","Vauxhall Karl 1.0L (2015–On)","Vauxhall Viva 1.0L (2015–On)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"13","rot":"CW"},"v":[{"s":"LRSG0030N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 13T, CW"},{"l":"LRSG0031","oe":["23300-8H500"],"x":[],"mk":["Nissan"],"f":["Nissan X-Trail 2.5L (2005–2006)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"13","rot":"CCW"},"v":[{"s":"LRSG0031N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 13T, CCW"},{"l":"LRSG0032","oe":["MD313327"],"x":[],"mk":["Hyundai","Mitsubishi"],"f":["Hyundai","Mitsubishi"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0032N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 8T, CW"},{"l":"LRSG0033","oe":["MD172860"],"x":[],"mk":["Chrysler","Hyundai","Mitsubishi"],"f":["Chrysler (1987–1995)","Hyundai (1987–1995)","Mitsubishi (1987–1995)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0033N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 8T, CW"},{"l":"LRSG0034","oe":["MD172864"],"x":[],"mk":["Dodge","Mitsubishi"],"f":["Dodge Stealth 3.0L (1991–1996)","Mitsubishi 3000GT 3.0L (1991–1995)","Mitsubishi Diamante 3.0L (1992–1995)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0034N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 8T, CW"},{"l":"LRSG0035","oe":["1810A053"],"x":[],"mk":["Mitsubishi"],"f":["Mitsubishi Space Gear 2.5L DSL (1994–1998)","Mitsubishi L300 2.5L D TD 4X4 (1994–1998)"],"i":-1,"s":{"volt":"12","kw":"2.2","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0035N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.2 kW, 10T, CW"},{"l":"LRSG0036","oe":["AB39-11000-BA"],"x":[],"mk":["Ford"],"f":["Ford Ranger 3.2L (2013–2016)"],"i":-1,"s":{"volt":"12","kw":"2.6","teeth":"12","rot":"CW"},"v":[{"s":"LRSG0036N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.6 kW, 12T, CW"},{"l":"LRSG0037","oe":["E30118400","E30118400A","30118400"],"x":[],"mk":[],"f":[],"i":-1,"s":{},"v":[{"s":"LRSG0037N","c":"N","o":"CN"}],"d":"Starter motor (specification to be confirmed)"},{"l":"LRSG0038","oe":["31200-R40-A01"],"x":[],"mk":["Acura","Honda"],"f":["Acura TSX 2.4L (2006–2008)","Honda Accord 2.4L (2006–2007)","Honda CR-V 2.4L (2007–2009)","Acura CSX 2.0L (2006–2008)","Honda Civic SI 2.0L (2006–2011)","Honda Element 2.4L (2007–2008)","Acura TSX 2.4L (2009–2014)","Honda Accord 2.4L (2008–2012)","Honda CR-V 2.4L (2010–2011)","Honda Element 2.4L (2009–2011)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0038N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 9T, CW"},{"l":"LRSG0039","oe":["31200-RCA-A51"],"x":[],"mk":["Acura","Honda"],"f":["Acura CL 3.0L (1998–1999)","Honda Accord 3.0L (1998–2000)","Honda Odyssey 3.5L (1999–2000)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"9","rot":"CCW"},"v":[{"s":"LRSG0039N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 9T, CCW"},{"l":"LRSG0040","oe":["31200-5A2-A52","31200-5A2-A51"],"x":[],"mk":["Honda"],"f":["Honda Accord 2.4L (2013–2017)","Honda Civic 2.0L (2016–2021)","Honda CR-V 2.4L (2015–2016)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0040N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 9T, CW"},{"l":"LRSG0041","oe":["31200-5AA-A02","31200-6A0-A01"],"x":[],"mk":["Honda"],"f":["Honda Civic 1.5L Turbo (2016–2019)","Honda CR-V 1.5L Turbo (2017–2019)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"16","rot":"CW"},"v":[{"s":"LRSG0041N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 16T, CW"},{"l":"LRSG0042","oe":["31200-5G0-A04"],"x":[],"mk":["Acura","Honda"],"f":["Acura RLX 3.5L (2014–2017)","Honda Accord 3.5L w/AT (2013–2017)","Honda Accord Crosstour 3.5L (2013–2015)"],"i":-1,"s":{"volt":"12","kw":"1.8","teeth":"19","rot":"CCW"},"v":[{"s":"LRSG0042N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.8 kW, 19T, CCW"},{"l":"LRSG0043","oe":["31200-RE0-004"],"x":[],"mk":["Honda"],"f":["Honda Jazz 1.3L (2011–2015)"],"i":-1,"s":{"volt":"12","kw":"1.0","teeth":"9","rot":"CCW"},"v":[{"s":"LRSG0043N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.0 kW, 9T, CCW"},{"l":"LRSG0044","oe":["31200-5BA-A02"],"x":[],"mk":["Honda"],"f":["Honda Civic 2.0L w/MT (2016–2020)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0044N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 9T, CW"},{"l":"LRSG0045","oe":["31200-RNA-003"],"x":[],"mk":["Honda"],"f":["Honda Civic 1.8L w/MT (2006–2011)","Honda CR-V 2.0L w/MT (2008–On)","Honda Accord 2.0L w/MT (2009–On)","Honda CR-V 2.0L w/MT (2007–2011)","Honda Accord 2.0L w/MT (2008–2013)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0045N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 9T, CW"},{"l":"LRSG0046","oe":["28100-28052","28100-28053"],"x":[],"mk":["Toyota"],"f":["Toyota Dyna BU300 / HiAce LH200 / Land Cruiser HJ80 (1990–2001)"],"i":-1,"s":{},"v":[{"s":"LRSG0046N","c":"N","o":"CN"}],"d":"Starter motor (specification to be confirmed)"},{"l":"LRSG0047","oe":["31200-R40-003"],"x":[],"mk":["Honda"],"f":["Honda Accord 2.0L (2008–2013)","Honda Accord 2.4L (2008–2013)","Honda CRV 2.4L (2012–2014)","Honda Crosstour 2.4L (2013–2014)"],"i":-1,"s":{"volt":"12","kw":"1.6","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0047N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.6 kW, 9T, CW"},{"l":"LRSG0048","oe":["31200-R70-A51"],"x":[],"mk":["Acura","Honda"],"f":["Acura RL 3.7L (2009–2010)","Acura TL 3.5L (2009–2011)","Honda Accord 3.5L (2008–2012)","Honda Accord Crosstour w/3.5L (2010–2012)","Honda Odyssey 3.5L (2008–2010)","Honda Ridgeline 3.5L (2009–2014)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"19","rot":"CCW"},"v":[{"s":"LRSG0048N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 19T, CCW"},{"l":"LRSG0049","oe":["AH22-110011-AC"],"x":[],"mk":["Land Rover"],"f":["Land Rover Discoveryd IV 3.0D (2009–On)","Land Rover Discovery IV 3.0L TD (2009–On)","Land Rover Discovery Sport 3.0D (2009–On)"],"i":-1,"s":{"volt":"12","kw":"2.0","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0049N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.0 kW, 9T, CW"},{"l":"LRSG0050","oe":["28100-33120"],"x":[],"mk":["Toyota"],"f":["Toyota Auris 1.4D (2009–2012)","Toyota Corolla 1.4D (2008–On)","Toyota Urban Cruiser 1.4D (2009–On)","Toyota Verso 1.4D (2010–On)","Toyota Yaris 1.4D (2008–2011)"],"i":-1,"s":{"volt":"12","kw":"2.0","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0050N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.0 kW, 10T, CW"},{"l":"LRSG0051","oe":["AH42-11001-BB"],"x":[],"mk":["Land Rover"],"f":["Land Rover LR4 5.0L (2010–2013)","Land Rover Range Rover 5.0L (2010–2012)","Land Rover Range Rover Sport 5.0L (2010–2013)","Land Rover Discovery IV 5.0L 4x4 (2009–On)","Land Rover Range Rover III 5.0L 4x4 (2009–2013)","Land Rover Range Rover Sport 5.0L 4x4 (2009–2013)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0051N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 10T, CW"},{"l":"LRSG0052","oe":["31200-RK2-A01"],"x":[],"mk":["Acura","Honda"],"f":["Acura TL 3.7L (2010–2011)","Honda Odyssey 3.5L (2011–2013)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"19","rot":"CCW"},"v":[{"s":"LRSG0052N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 19T, CCW"},{"l":"LRSG0053","oe":["03L-911-021"],"x":[],"mk":["Audi"],"f":["Audi A4 (8K, B8) (07-)","Audi A4 Allroad (8KH) (09-)","Audi A5 (8T, 8F) (07-)","Audi A6 (4G, C7) (10-)","Audi Q5 (8R) (08-)"],"i":-1,"s":{"volt":"12","kw":"1.8","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0053N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.8 kW, 11T, CW"},{"l":"LRSG0054","oe":["31200-R1A-G51"],"x":[],"mk":["Honda"],"f":["Honda Civic IX 1.8L (2011–On)","Honda CR-V IV 2.0L (2012–On)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0054N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 9T, CW"},{"l":"LRSG0055","oe":["CPLA-11001-BD"],"x":[],"mk":["Land Rover"],"f":["Land Rover Discovery IV 3.0L TD (2009–On)","Land Rover Discovery V 3.0L TD 4x4 (2016–On)","Land Rover Range Rover IV 3.0L D 4x4 (2012–On)","Land Rover Range Rover IV 3.0L D Hybrid 4x4 (2013–On)","Land Rover Range Rover Sport 3.0L TD 4x4 (2013–On)","Land Rover Range Rover Sport II 3.0L 4x4 (2013–On)","Land Rover Range Rover Sport II 3.0L Hybrid 4x4 (2013–On)"],"i":-1,"s":{"volt":"12","kw":"1.9","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0055N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.9 kW, 11T, CW"},{"l":"LRSG0056","oe":["06E-911-021D"],"x":[],"mk":["Audi"],"f":["Audi A4 3.0TFSI (2013–On)","Audi A5 3.0TFSI (2013–On)","Audi S5 3.0TFSI (2013–On)","Audi Q5 3.0TFSI (2013–On)","Audi A6 3.0TFSI (2013–On)","Audi S6 4.0TFSI (2013–On)","Audi RS7 4.0L (2015–On)","Audi S8 4.0TFSI (2013–On)","Audi A8 4.0TFSI (2013–On)","Audi A8 Quattro 4.0L (2015–On)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0056N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 11T, CW"},{"l":"LRSG0057","oe":["36100-27000"],"x":[],"mk":["Hyundai","Kia"],"f":["Hyundai Elantra 2.0L 16V (2001–On)","Hyundai Santa FE 2.0L 16V (2001–On)","Hyundai Santa FE 2.2L (2006–On)","Hyundai Sonata V 2.0L (2006–On)","Hyundai Trajet 2.0L 16V (2001–On)","Hyundai Tuscon 2.0L (2005–On)","Kia Carens II 2.0L (2002–On)","Kia Carens III 2.0L (2006–On)","Kia Magentis 2.0L (2006–On)","Kia Sportage 2.0L (2006–On)"],"i":-1,"s":{"volt":"12","kw":"2.0","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0057N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.0 kW, 9T, CW"},{"l":"LRSG0058","oe":[],"x":[],"mk":["Geely"],"f":["Geely Coolray (SX11) / Atlas Pro / New Binyue (2020–2024)"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"12","rot":"CW"},"v":[{"s":"LRSG0058N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 12T, CW"},{"l":"LRSG0059","oe":[],"x":[],"mk":["Geely"],"f":["Geely"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0059N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 9T, CW"},{"l":"LRSG0060","oe":[],"x":[],"mk":["Geely"],"f":["Geely"],"i":-1,"s":{"volt":"12","kw":"1.4","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0060N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.4 kW, 11T, CW"},{"l":"LRSG0061","oe":[],"x":[],"mk":["Geely"],"f":["Geely Coolray (SX11) / Atlas Pro (NL-3B) / Monjaro / ICON (2018–2024 / 2019–2024)","Geely Tugella (FY11) / Monjaro (KX11) / Preface 2.0T (2018–2024 / 2019–2024)","Geely Tugella (FY11) (2018–2024 / 2019–2024)"],"i":-1,"s":{"volt":"12","kw":"1.5","teeth":"11","rot":"CW"},"v":[{"s":"LRSG0061N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.5 kW, 11T, CW"},{"l":"LRSG0062","oe":["36100-38090","36100-38090RU"],"x":["Lucas (legacy no.) LRS01655","VALEO 438099","VALEO TM000A13901","MANDO M60082","LESTER 17762","REMY 17676","MPA 17762","WOOD AUTO STR75004","CARGO 113521","PIC 103-322"],"mk":["Hyundai","Kia"],"f":["Hyundai Santa Fe 2.4L (2001–2004)","Hyundai Sonata 2.4L (1999–2005)","Hyundai Sonata 2.7L (2002–2003)","Kia Magentis 2.4L (2001–2006)","Kia Optima 2.4L (2001–2006)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0062N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 8T, CW"},{"l":"LRSG0063","oe":["36100-23161","36100-23100","36100-23120","36100-23150","36100-23160","36100-23165"],"x":["Lucas (legacy no.) LRT00203","VALEO 1250299","VALEO 187507","VALEO 438103","VALEO 455969","VALEO TM000A08401","JHEECO QDY1202","LESTER 17709","WAI 17709N","WAI 17709R","BBB 17709","REMY 17291","MPA 17709","DIXIE S-8589","WILSON 91-20-3537","WILSON 91-31-9009","ARROWHEAD SMT0092","J & N 410-40044","PIC 108-261","PIC 103-289","CARGO 111307","CASCO CST32102","AS S9345S","AS-PL UD20464S","HC-PARTS JS923","ERA 220383","DELCO REMY DRS3577","KRAUF STA0923","ELSTOCK 25-2142","AUTOELECTRO AES2203","WOOD AUTO STR3077","WOOD AUTO STR75001"],"mk":["Hyundai","Kia"],"f":["Hyundai Elantra 1.8L (1996–1998)","Hyundai Elantra 2.0L (1999–2004)","Hyundai Tiburon 1.8L (1997)","Hyundai Tiburon 2.0L (1997–2004)","Kia Spectra 2.0L (2005)"],"i":-1,"s":{"volt":"12","kw":"1.2","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0063N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.2 kW, 8T, CW"},{"l":"LRSG0064","oe":["36100-22805","36100-22800","36100-22805RU","36100-22825"],"x":["Lucas (legacy no.) LRS02200","VALEO 600084","VALEO 600258","VALEO TM000A27301","VALEO TM000A37201","VALEO TM000A37210","JHEECO QDY1101","LESTER 17827","WAI 17827N","WAI 17827R","BBB 17827","REMY 17341","MPA 17827","DIXIE S-8160","WILSON 91-31-9014","WILSON 91-31-9020","ARROWHEAD SPR0012","J & N 410-40008","J & N 410-40046","PIC 108-281","PIC 108-281A","CARGO 113659","CASCO CST32113","CASCO CST32113GS","AS S3111","AS-PL UD02026S","HC-PARTS JS1311","ERA 220377","DELCO REMY DRS0038","DELCO REMY DRS0038N","PSH 150.001.082","KRAUF STA1311","ELSTOCK 25-0298","ELSTOCK 25-3371","AUTOELECTRO AES5115","WOOD AUTO STR54129"],"mk":["Hyundai","Kia"],"f":["Hyundai Accent 1.6L w/MT (2004–2008)","Kia RIO 1.6L w/MT (2006–2008)"],"i":-1,"s":{"volt":"12","kw":"0.9","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0064N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 0.9 kW, 8T, CW"},{"l":"LRSG0065","oe":["36100-2B100","36100-2B100B"],"x":["Lucas (legacy no.) LRS02571","VALEO 1195239","VALEO 458759","VALEO 600209","LESTER 17593","WAI 17593N","BBB 17593","REMY 17546","MPA 17593","DIXIE S-6570","WILSON 91-20-3563","ARROWHEAD SVA0023","J & N 410-40049","PIC 108-570","CARGO 114443","CASCO CST32125","AS S3112","AS-PL UD12015S","HC-PARTS CS1465","ERA 220537","DELCO REMY DRS0808","PSH 250.507.082","KRAUF STB1465","ELSTOCK 25-4243","AUTOELECTRO AEY2571","WOOD AUTO STR54174"],"mk":["Hyundai","Kia"],"f":["Hyundai Accent 1.4L(G4FA) (2010–2017)","Hyundai Elantra 1.6L(D4FB) (2005–2010)","Hyundai Elantra 1.6L(G4FG) (2011–2016)","Hyundai i20 1.4L(G4FA) (2008–2015)","Hyundai i20 1.6L(G4FC) (2008–2012)","Hyundai ix20 1.4L(G4FA) (2010–On)","Hyundai ix20 1.6L(D4FB) (2011–On)","Hyundai i30 1.4L(G4FA) (2007–2011)","Hyundai i30 1.6L(G4FC) (2007–2011)","Hyundai ix35 1.6L(G4FD) (2010–On)","Hyundai ix40 1.6L(G4FD) (2011–On)","Hyundai Veloster 1.6L(G4FD) (2011–2017)","Hyundai Veloster 1.6L(G4FJ) (2012–2017)","Kia RIO III 1.4L(G4FA) (2011–On)","Kia Soul 1.6L(G4FC) (2009–On)"],"i":-1,"s":{"volt":"12","kw":"0.9","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0065N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 0.9 kW, 8T, CW"},{"l":"LRSG0066","oe":["36100-2B102","36100-2B102P"],"x":["VALEO 1201942","VALEO 600212","VALEO S0001201942","LESTER 30256","WAI 30256N","REMY 16197","J & N 410-40060","PIC 108-585","ERA 220745","DELCO REMY DRS0919"],"mk":["Hyundai","Kia"],"f":["Hyundai Accent 1.6L (2014–2017)","Hyundai Veloster 1.6L (2013–2017)","Kia Soul 1.6L (2013–2015)","Kia RIO 1.6L (2013–2016)"],"i":-1,"s":{"volt":"12","kw":"0.9","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0066N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 0.9 kW, 10T, CW"},{"l":"LRSG0067","oe":["36100-02555","36100-02511","36100-02550","36100-02560","36100-02800"],"x":["Lucas (legacy no.) LRS01453","VALEO 438101","VALEO 455967","VALEO 579185","VALEO 628393","VALEO 726076","VALEO TM000A10401","VALEO TM000A37001","LESTER 32453","WAI 32453N","WAI 32453R","PIC 108-290","PIC 108-479","CARGO 112322","CASCO CST32100GS","CASCO CST32100OS","AS S3107S","AS-PL UD20475S","HC-PARTS JS1303","ERA 220348","DELCO REMY DRS3708","PSH 150.514.082","KRAUF STA1303","ELSTOCK 25-2384","AUTOELECTRO AET1303","WOOD AUTO STR54090","WOOD AUTO VAL438101"],"mk":["Hyundai"],"f":["Hyundai Atos"],"i":-1,"s":{"volt":"12","kw":"0.8","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0067N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 0.8 kW, 8T, CW"},{"l":"LRSG0068","oe":["36100-2A100"],"x":[],"mk":["Hyundai","Kia"],"f":["Hyundai Accent IV 1.4L CRDi (2014–On)","Hyundai Accent IV 1.6L CRDi (2014–On)","Hyundai Elantra V 1.6L CRDi (2014–On)","Hyundai i20 1.4L CRDi (2014–On)","Hyundai i30 II 1.4L CRDi (2014–On)","Hyundai i30 II 1.6L CRDi (2014–On)","Kia CEE' D II 1.4L CRDi (2014–On)","Kia CEE' D II 1.6L CRDi (2014–On)","Kia PRO CEE' D II 1.4L CRDi (2013–2014)","Kia PRO CEE' D II 1.6L CRDi (2013–2014)","Kia Soul II 1.6L CRDi (2013–On)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0068N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 8T, CW"},{"l":"LRSG0069","oe":["23300-W0402","23300-80W00"],"x":[],"mk":["Nissan"],"f":["Nissan Navara D21 (Z20 2.0L Petrol)","Nissan Urvan (Z20 2.0L Petrol)","Nissan Cabstar (Z20 2.0L Petrol)","Nissan 720 Pickup 1982–86 (Z20 / Z22 / Z24 2.0L–2.4L Petrol)","Nissan Hardbody D21 Pickup 1986–89 (Z20 / Z22 / Z24 2.0L–2.4L Petrol)","Nissan 510 (Z20 / Z22 / Z24 2.0L–2.4L Petrol)","Nissan 200SX (Z20 / Z22 / Z24 2.0L–2.4L Petrol)"],"i":-1,"s":{"volt":"12","kw":"1.0","teeth":"9","rot":"CW"},"v":[{"s":"LRSG0069N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.0 kW, 9T, CW"},{"l":"LRSG0070","oe":["36100-42350-PMA","36100-42350"],"x":["Lucas (legacy no.) LRS02764","Lucas (legacy no.) LRS01436","VALEO TM000A36101","LESTER 32695","WAI 32695N","PIC 102-370","PIC 108-583","CARGO 113445","CASCO CST32130","AS S3166S","AS-PL UD14895S","HC-PARTS JS1227","HC-PARTS JS1351","ERA 220086","REMY EUROPE DRS3869","PSH 150.526.102","KRAUF STA1351KR","ELSTOCK 25-2211","ELSTOCK 25-2349","ELSTOCK 25-3244","WOOD AUTO STR71105"],"mk":["Hyundai"],"f":["Hyundai H-1 2.5L TD (2002–2006)","Hyundai Starex 2.5L TD (1997–2007)"],"i":-1,"s":{"volt":"12","kw":"2.2","teeth":"10","rot":"CW"},"v":[{"s":"LRSG0070N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 2.2 kW, 10T, CW"},{"l":"LRSG0071","oe":["31200-RAD-A03"],"x":[],"mk":["Honda"],"f":["Honda"],"i":-1,"s":{},"v":[{"s":"LRSG0071N","c":"N","o":"CN"}],"d":"Starter motor (specification to be confirmed)"},{"l":"LRSG0072","oe":["36100-2A300"],"x":["VALEO 1195925","VALEO 458755","VALEO 600243","VALEO 644895","VALEO S0001195925","VALEO TM000A33401"],"mk":["Hyundai","Kia"],"f":["Hyundai i20 1.4L CRDi (2010–On)","Hyundai i20 1.6L CRDi (2010–On)","Hyundai i30 1.6L CRDi (2010–On)","Hyundai iX20 1.4L CRDi (2011–On)","Hyundai iX20 1.6L CRDi (2011–On)","Kia Soul 1.6L CRDi (2009–On)","Kia Venga 1.6L CRDi (2009–On)"],"i":-1,"s":{"volt":"12","kw":"1.7","teeth":"8","rot":"CW"},"v":[{"s":"LRSG0072N","c":"N","o":"CN"}],"d":"Starter motor 12 V, 1.7 kW, 8T, CW"}];
+const IMGS = [];
+const CAT = "Starters";
+const ORIGINS = {CN:'China', MY:'Malaysia'};
+const COND = {N:'New', R:'Reman'};
+
+const GROUPS = [
+  {key:'s1', name:'Up to 1.2 kW', short:'Up to 1.2 kW', blurb:'Small and mid-size petrol engines.'},
+  {key:'s2', name:'1.3 to 2.0 kW', short:'1.3–2.0 kW', blurb:'Larger petrol engines and most passenger-car diesels.'},
+  {key:'s3', name:'Above 2.0 kW and 24 V', short:'Above 2.0 kW', blurb:'Large diesels, SUVs and light commercial; includes 24 V.'},
+  {key:'s0', name:'Specification to follow', short:'Specs to follow', blurb:'Part numbers whose power and teeth are still being confirmed. Check by OE number.'}
+];
+const P = {
+  plural: 'starter motors', groups: GROUPS,
+  grpOf(d){ const k = parseFloat(d.s.kw); if (d.s.volt === '24' || k > 2.0) return 's3'; if (!k) return 's0'; return k <= 1.2 ? 's1' : 's2'; },
+  labels(){ return [['volt','Voltage',' V'],['kw','Power',' kW'],['teeth','Pinion teeth',''],['rot','Rotation',''],['code','Type / code','']]; },
+  typeLine(d){ return `Starter motor${d.s.volt ? ' · ' + esc(d.s.volt) + ' V' : ''}${d.s.kw ? ' · ' + esc(d.s.kw) + ' kW' : ''}`; },
+  xsel: {id:'xSel', all:'All', values(){ const c = countBy(d => d.s.teeth); return Object.keys(c).sort((a,b) => a - b).map(k => [k, k + ' teeth', c[k]]); }, match:(d,v) => d.s.teeth === v},
+  stats(){ return [[DATA.length.toLocaleString(), 'Lucas part numbers'], [new Set(DATA.flatMap(d => d.mk)).size, 'Vehicle makes'], [new Set(DATA.flatMap(d => d.oe)).size.toLocaleString(), 'OE numbers']]; },
+  tileRows(k){ const its = DATA.filter(d => d.g === k); return [['Part numbers', its.length.toLocaleString()], ['Vehicle makes', new Set(its.flatMap(d => d.mk)).size]]; },
+  emptyHint: 'Check the number, or clear a filter. Search works on Lucas numbers (LRSG…), order codes (LRSG…N), OE numbers, makes, models and engine sizes.'
+};
+
+
+const PAGE = 48;
+const $ = s => document.querySelector(s);
+const norm = s => String(s).toLowerCase().replace(/[\s\-_./()]+/g,'');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function natural(a,b){ return String(a).localeCompare(String(b), undefined, {numeric:true, sensitivity:'base'}); }
+function hl(text, tokens){
+  text = String(text == null ? '' : text); if (!tokens.length) return esc(text);
+  const map = []; let n = '';
+  for (let i = 0; i < text.length; i++){ const c = text[i].toLowerCase(); if (!/[\s\-_./()]/.test(c)){ map.push(i); n += c; } }
+  const marks = new Array(text.length).fill(false);
+  tokens.forEach(t => { let p = n.indexOf(t); while (p > -1){ for (let k = map[p]; k <= map[p + t.length - 1]; k++) marks[k] = true; p = n.indexOf(t, p + t.length); } });
+  let out = '', open = false;
+  for (let i = 0; i < text.length; i++){ if (marks[i] && !open){ out += '<mark>'; open = true; } else if (!marks[i] && open){ out += '</mark>'; open = false; } out += esc(text[i]); }
+  return out + (open ? '</mark>' : '');
+}
+function kv(d){
+  const rows = P.labels(d).filter(([k]) => d.s[k]).map(([k,lab,u]) => `<dt>${lab}</dt><dd>${esc(d.s[k])}${u || ''}</dd>`);
+  return rows.length ? `<dl class="kv">${rows.join('')}</dl>` : '';
+}
+function offerLine(o){
+  const c = o.c ? `<span class="cond ${o.c}">${COND[o.c]}</span>` : '';
+  return `<span class="org" title="Country of origin: ${esc(ORIGINS[o.o] || o.o)}"><b>${esc(o.o)}</b> ${esc(ORIGINS[o.o] || '')}</span>${c ? ' ' + c : ''}`;
+}
+function offersBlock(d,t){
+  return `<div class="offers"><div class="xh">${d.v.length > 1 ? 'Available as' : 'Order code'}</div>${d.v.map(o => `<div class="offer"><span class="sku">${hl(o.s,t)}</span>${offerLine(o)}<button class="cadd" type="button" data-cart="${esc(o.s)}">Cart</button></div>`).join('')}</div>`;
+}
+function oeBlock(d,t){
+  if (!d.oe.length) return '';
+  const lim = 6, all = d.oe.length > lim && !t.length;
+  const shown = t.length ? d.oe : d.oe.slice(0, lim);
+  return `<div class="blk"><div class="xh">OE numbers</div><div class="oes">${shown.map(o => `<span>${hl(o,t)}</span>`).join('')}${all ? `<button class="more" type="button" data-oe="${esc(d.l)}">+${d.oe.length - lim} more</button>` : ''}</div></div>`;
+}
+function xBlock(d,t){
+  if (!d.x.length) return '';
+  const lim = 4, hits = t.length ? d.x.filter(x => t.every(k => norm(x).includes(k))) : [];
+  const shown = hits.length ? hits.slice(0, 8) : d.x.slice(0, lim);
+  const more = d.x.length - shown.length;
+  return `<div class="blk"><div class="xh">Cross reference</div>${shown.map(x => `<div class="xr"><b>${hl(x,t)}</b></div>`).join('')}${more > 0 ? `<button class="more" type="button" data-xr="${esc(d.l)}">+${more} more</button>` : ''}</div>`;
+}
+function matchFit(d,t){ return t.length && d.f.filter(l => { const n = norm(l); return t.every(x => n.includes(x)); }); }
+function fitBlock(d,t){
+  const mk = d.mk.length ? `<div class="makes">${d.mk.map(m => `<span class="mk">${hl(m,t)}</span>`).join('')}</div>` : '<div style="color:var(--grey-lt)">Check by OE number</div>';
+  let det = '';
+  if (d.f.length){
+    const hits = matchFit(d,t) || [];
+    const list = hits.length ? hits : d.f;
+    det = `<details class="fit"${hits.length ? ' open' : ''}><summary>${hits.length ? `${hits.length} matching vehicle${hits.length > 1 ? 's' : ''}` : `Vehicle list (${d.f.length})`}</summary><div class="fitlist">${list.map(l => `<div>${hl(l,t)}</div>`).join('')}</div></details>`;
+  }
+  return `<div class="blk"><div class="xh">Vehicle fitment</div>${mk}${det}</div>`;
+}
+function countBy(fn){ const c = {}; DATA.forEach(d => [].concat(fn(d)).forEach(v => { if (v) c[v] = (c[v] || 0) + 1; })); return c; }
+
+DATA.forEach(d => {
+  d.s = d.s || {}; d.oe = d.oe || []; d.x = d.x || []; d.mk = d.mk || []; d.f = d.f || []; d.v = d.v || []; d.d = d.d || '';
+  d.g = P.grpOf(d);
+  d._hay = norm([d.l, ...d.v.map(o => o.s), ...d.oe, ...d.x, ...d.mk, d.d, d.s.code || ''].join(' '));
+  d._fitn = norm(d.f.join(' | '));
+});
+DATA.sort((a,b) => natural(a.l, b.l));
+const state = {q:'', grp:'', cond:'', org:'', sel:{}, view:'cards', shown:PAGE};
+function tokens(){ return state.q.trim().toLowerCase().split(/\s+/).map(norm).filter(Boolean); }
+function offersOf(d){ return d.v.filter(o => (!state.cond || o.c === state.cond) && (!state.org || o.o === state.org)); }
+function filtered(){
+  const t = tokens();
+  return DATA.filter(d => (!state.grp || d.g === state.grp)
+    && offersOf(d).length
+    && SELECTS.every(s => !state.sel[s.id] || s.match(d, state.sel[s.id]))
+    && t.every(x => d._hay.includes(x) || (d._fitn && d._fitn.includes(x))));
+}
+function pic(d){ return d.i >= 0 && IMGS[d.i] ? `<img src="${IMGS[d.i]}" alt="Lucas ${esc(d.l)}" loading="lazy">` : '<span class="noimg">Image to follow</span>'; }
+function card(d, t){
+  const view = Object.assign({}, d, {v: offersOf(d)});
+  return `<article class="card">${d.i >= 0 && IMGS[d.i] ? `<div class="ph">${pic(d)}</div>` : ''}<div class="bd">
+    <div class="t1"><div class="code">${hl(d.l, t)}</div><span class="t1b"><button class="copy" type="button" data-copy="${esc(d.l)}">Copy</button></span></div>
+    <div class="tp">${P.typeLine(d)}</div>
+    ${d.d ? `<div class="ds">${hl(d.d, t)}</div>` : ''}
+    ${kv(d)}${offersBlock(view, t)}${oeBlock(d,t)}${xBlock(d,t)}${fitBlock(d,t)}</div></article>`;
+}
+function table(rows, t){
+  const out = [];
+  rows.forEach(d => offersOf(d).forEach(o => out.push(`<tr><td class="c part-no sku">${hl(o.s, t)}</td><td class="lp">${hl(d.l, t)}</td><td class="ds">${hl(d.d, t)}</td><td>${o.c ? COND[o.c] : '–'}</td><td><span class="org"><b>${esc(o.o)}</b></span></td><td class="mkc">${d.mk.map(m => hl(m,t)).join(', ') || '–'}</td><td><span class="oe">${d.oe.slice(0,4).map(x => hl(x,t)).join('<br>')}${d.oe.length > 4 ? '<br>…' : ''}</span></td></tr>`)));
+  return `<div class="tablewrap"><table class="list"><thead><tr><th>Order code</th><th>Lucas Part No.</th><th>Description</th><th>Condition</th><th>Origin</th><th>Make</th><th>OE numbers</th></tr></thead><tbody>${out.join('')}</tbody></table></div>`;
+}
+function chipRow(f, opts){
+  const g = document.querySelector(`.fg[data-f=${f}]`);
+  g.querySelectorAll('.chip').forEach(c => c.remove());
+  [['','All'], ...opts].forEach(([v,l]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = l; b.setAttribute('aria-pressed', state[f] === v);
+    b.onclick = () => { state[f] = v; state.shown = PAGE; render(); }; g.appendChild(b);
+  });
+}
+const condOpts = () => { const c = countBy(d => d.v.map(o => o.c)); return ['N','R'].filter(k => c[k]).map(k => [k, COND[k]]); };
+const orgOpts = () => { const c = countBy(d => d.v.map(o => o.o)); return Object.keys(ORIGINS).filter(k => c[k]).map(k => [k, k + ' ' + ORIGINS[k]]); };
+function chips(){
+  chipRow('grp', P.groups.map(x => [x.key, x.short]));
+  chipRow('cond', condOpts());
+  chipRow('org', orgOpts());
+  SELECTS.forEach(s => { const el = $('#' + s.id); el.value = state.sel[s.id] || ''; el.classList.toggle('on', !!state.sel[s.id]); });
+}
+function render(){
+  const rows = filtered(), t = tokens();
+  const active = state.q || state.grp || state.cond || state.org || Object.values(state.sel).some(Boolean);
+  $('#count').innerHTML = `Showing <b>${Math.min(rows.length, state.shown).toLocaleString()}</b> of ${rows.length.toLocaleString()} matching · ${DATA.length.toLocaleString()} part numbers in total` + (active ? `<button class="reset" type="button" id="reset">Reset all</button>` : '');
+  if (active) $('#reset').onclick = () => { Object.assign(state, {q:'', grp:'', cond:'', org:'', sel:{}, shown:PAGE}); $('#q').value = ''; render(); $('#q').focus(); };
+  const page = rows.slice(0, state.shown);
+  $('#results').innerHTML = rows.length ? (state.view === 'cards' ? `<div class="grid">${page.map(d => card(d, t)).join('')}</div>` : table(page, t))
+    : `<div class="empty"><b>No ${esc(P.plural)} match${state.q ? ` "${esc(state.q)}"` : ''}</b>${P.emptyHint}</div>`;
+  $('#pager').innerHTML = rows.length > state.shown ? `<button type="button" id="moreBtn">Show ${Math.min(PAGE, rows.length - state.shown)} more</button>` : '';
+  if (rows.length > state.shown) $('#moreBtn').onclick = () => { state.shown += PAGE; render(); };
+  $('#searchBox').classList.toggle('has', !!state.q);
+  document.querySelectorAll('.view button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === state.view));
+  chips();
+}
+const SELECTS = [
+  {id:'mkSel', all:'All makes', values(){ const c = countBy(d => d.mk); return Object.keys(c).sort((a,b) => a.localeCompare(b)).map(k => [k,k,c[k]]); }, match:(d,v) => d.mk.includes(v)},
+  P.xsel
+];
+$('#stats').innerHTML = P.stats().map(([b,s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+const cnt = k => DATA.filter(d => d.g === k).length;
+$('#typeTiles').innerHTML = P.groups.filter(g => cnt(g.key)).map(g => `<button class="type" type="button" data-grp="${g.key}"><div class="tx"><h3>${esc(g.name)}</h3><div class="k">${esc(g.blurb)}</div>
+  ${P.tileRows(g.key).map(([a,b]) => `<div class="row"><span>${a}</span><b>${b}</b></div>`).join('')}
+  <span class="go">View ${cnt(g.key).toLocaleString()} part numbers →</span></div></button>`).join('');
+document.querySelectorAll('.type').forEach(b => b.addEventListener('click', () => { Object.assign(state, {grp:b.dataset.grp, q:'', sel:{}, shown:PAGE}); $('#q').value = ''; render(); $('#finder').scrollIntoView(); }));
+SELECTS.forEach(s => {
+  const el = $('#' + s.id);
+  el.innerHTML = `<option value="">${esc(s.all)}</option>` + s.values().map(([v, label, n]) => `<option value="${esc(v)}">${esc(label)} (${n})</option>`).join('');
+  el.addEventListener('change', e => { state.sel[s.id] = e.target.value; state.shown = PAGE; render(); });
+});
+let tmr; $('#q').addEventListener('input', e => { clearTimeout(tmr); tmr = setTimeout(() => { state.q = e.target.value; state.shown = PAGE; render(); }, 120); });
+$('#clr').onclick = () => { state.q = ''; $('#q').value = ''; state.shown = PAGE; render(); $('#q').focus(); };
+document.querySelectorAll('.view button').forEach(b => b.onclick = () => { state.view = b.dataset.v; render(); });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== $('#q') && !/input|select|textarea/i.test(document.activeElement.tagName)){ e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'Escape' && document.activeElement === $('#q') && state.q){ $('#clr').click(); }
+});
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1400); }
+$('#results').addEventListener('click', e => {
+  const m = e.target.closest('[data-oe]');
+  if (m){ const d = DATA.find(x => x.l === m.dataset.oe); m.parentElement.innerHTML = d.oe.map(o => `<span>${esc(o)}</span>`).join(''); return; }
+  const xm = e.target.closest('[data-xr]');
+  if (xm){ const d = DATA.find(x => x.l === xm.dataset.xr); xm.parentElement.innerHTML = '<div class="xh">Cross reference</div>' + d.x.map(x => `<div class="xr"><b>${esc(x)}</b></div>`).join(''); return; }
+  const b = e.target.closest('[data-copy]'); if (!b) return;
+  const v = b.dataset.copy; const done = () => toast(v + ' copied');
+  const fb = () => { const i = document.createElement('textarea'); i.value = v; document.body.appendChild(i); i.select(); try { document.execCommand('copy'); } catch(_){} i.remove(); done(); };
+  try { navigator.clipboard.writeText(v).then(done).catch(fb); } catch(_){ fb(); }
+});
+render();
+</script>
+
+<script>
+/* ================= request-for-price cart ================= */
+// Each order code (LP + N/R, or the LP alone for components) is one cart line; the description carries condition and origin.
+const BY_SKU = {}; DATA.forEach(d => d.v.forEach(o => { BY_SKU[o.s] = {d, o}; }));
+window.LucasCartDescribe = function(no){
+  const h = BY_SKU[no]; if (!h) return null;
+  const bits = [h.d.d]; if (h.o.c) bits.push(COND[h.o.c]); bits.push('Origin ' + h.o.o);
+  return { desc: bits.join(', '), make: h.d.mk.join(', '), oe: h.d.oe.slice(0, 3).join(', ') };
+};
+(function(){
+  const st = document.createElement('style');
+  st.textContent = '.t1b{display:inline-flex;gap:6px;flex:0 0 auto}'
+    + '.cadd{border:1px solid #00954C;background:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:3px 9px;color:#00954C;white-space:nowrap}'
+    + '.cadd:hover{background:#e6f4ed}.cadd.on{background:#00954C;color:#fff;cursor:default}'
+    + '.card.incart{border-color:#00954C}.list td.lc-sel{vertical-align:middle}#pager{padding-bottom:72px}';
+  document.head.appendChild(st);
+})();
+function paintCart(){
+  const CART = window.LucasCart; if (!CART) return;
+  document.querySelectorAll('.cadd[data-cart]').forEach(b => {
+    const no = b.dataset.cart, on = CART.has(no, CAT);
+    b.classList.toggle('on', on); b.disabled = on;
+    b.textContent = on ? '\u2713 In cart' : 'Cart';
+    b.setAttribute('aria-label', on ? no + ' is in your cart' : 'Add ' + no + ' to cart');
+  });
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('incart', !!c.querySelector('.cadd.on')));
+}
+const renderPage = render;
+render = function(){ renderPage(); paintCart(); };
+$('#results').addEventListener('click', e => {
+  const b = e.target.closest('.cadd[data-cart]'); if (!b || !window.LucasCart) return;
+  const no = b.dataset.cart; if (LucasCart.has(no, CAT)) return;
+  LucasCart.add([Object.assign({ no: no, catalogue: CAT }, window.LucasCartDescribe(no))]);
+  if (LucasCart.say) LucasCart.say(no + ' added to your cart');
+});
+</script>
+<script src="/assets/cart.js" data-catalogue="Starters" data-tables="all"></script>
+<script>paintCart(); if (window.LucasCart) LucasCart.onChange(paintCart);</script>
+<script src="/assets/site-nav.js"></script>
+</body>
+</html>

@@ -36,7 +36,7 @@
 
   /* One-line description used everywhere (cart, emails, Excel): catalogues may set it.desc;
      otherwise it is built from the catalogue name plus make / application. */
-  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Oil Filters': 'Oil filter', 'Air Filters': 'Air filter', 'Water Pumps': 'Water pump', 'Filters': 'Filter', 'Batteries': 'Battery' };
+  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Oil Filters': 'Oil filter', 'Air Filters': 'Air filter', 'Water Pumps': 'Water pump', 'Starters': 'Starter motor', 'Alternators': 'Alternator', 'Filters': 'Filter', 'Batteries': 'Battery' };
   function describe(it) {
     if (!it) return '';
     if (it.desc) return String(it.desc);
