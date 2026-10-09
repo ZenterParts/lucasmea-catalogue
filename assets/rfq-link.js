@@ -31,7 +31,7 @@
   var canZip = typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
 
   // Compact form (v2): customer details + [LP no., description, qty] per part.
-  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Oil Filters': 'Oil filter', 'Air Filters': 'Air filter', 'Water Pumps': 'Water pump', 'Filters': 'Filter', 'Batteries': 'Battery' };
+  var SINGULAR = { 'Gas Springs': 'Gas spring', 'Horns': 'Horn', 'Bulbs': 'Bulb', 'Wiper Blades': 'Wiper blade', 'Oil Filters': 'Oil filter', 'Air Filters': 'Air filter', 'Water Pumps': 'Water pump', 'Starters': 'Starter motor', 'Alternators': 'Alternator', 'Filters': 'Filter', 'Batteries': 'Battery' };
   function descOf(it) {
     if (it.desc) return String(it.desc);
     var body = [it.make, it.app].filter(Boolean).join(' '), kind = SINGULAR[it.catalogue] || it.catalogue || '';
