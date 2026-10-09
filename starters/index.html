@@ -280,7 +280,7 @@ footer{border-top:1px solid var(--line)}
 <section class="origins" id="origins">
   <div class="wrap">
     <h2 class="sec-h">Condition and country of origin</h2>
-    <p>Each Lucas part number is one product with one set of fitting specifications. It can be offered new or remanufactured, and from more than one country of origin, so you can choose the option that suits your price and quality needs. The order code shows the condition: <b>N</b> for new, <b>R</b> for remanufactured.</p>
+    <p>Each Lucas part number is one product with one set of fitting specifications. It can be offered new or remanufactured, and from more than one country of origin, so you can choose the option that suits your price and quality needs.</p>
     <div class="ogrid">
       <div class="obox"><h3><span class="org"><b>CN</b> China</span></h3><p>New units. Available now across the range.</p></div>
       <div class="obox soon"><h3><span class="org"><b>MY</b> Malaysia</span></h3><p>Remanufactured and new units for selected applications.</p></div>
@@ -292,7 +292,7 @@ footer{border-top:1px solid var(--line)}
 <section class="specs" id="specs">
   <div class="wrap">
     <h2 class="sec-h">Technical data</h2>
-    <div class="tablewrap" style="border:0"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><th>Lucas part number</th><td>LRSG followed by four digits. One number per starter motor, whoever makes it.</td></tr><tr><th>Order code</th><td>The Lucas part number plus the condition: N for new (LRSG0001N), R for remanufactured (LRSG0001R). Quote this code when you order.</td></tr><tr><th>Origin</th><td>Country where the unit is made: CN China, MY Malaysia.</td></tr><tr><th>Voltage</th><td>System voltage: 12 V for cars and light commercial, 24 V for trucks and heavy equipment.</td></tr><tr><th>Power</th><td>Rated output of the starter in kilowatts. Small differences between makers (for example 0.9 and 1.0 kW) are normal for the same application.</td></tr><tr><th>Pinion teeth</th><td>Number of teeth on the drive pinion. It must match the flywheel or flexplate, so always check it against the old unit.</td></tr><tr><th>Rotation</th><td>CW clockwise or CCW counter-clockwise, viewed from the pinion (drive) end.</td></tr><tr><th>Type / code</th><td>Manufacturer type reference where known, useful for matching the old unit.</td></tr></tbody></table></div>
+    <div class="tablewrap" style="border:0"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><th>Lucas part number</th><td>LRSG followed by four digits. One number per starter motor, whoever makes it.</td></tr><tr><th>Origin</th><td>Country where the unit is made: CN China, MY Malaysia.</td></tr><tr><th>Voltage</th><td>System voltage: 12 V for cars and light commercial, 24 V for trucks and heavy equipment.</td></tr><tr><th>Power</th><td>Rated output of the starter in kilowatts. Small differences between makers (for example 0.9 and 1.0 kW) are normal for the same application.</td></tr><tr><th>Pinion teeth</th><td>Number of teeth on the drive pinion. It must match the flywheel or flexplate, so always check it against the old unit.</td></tr><tr><th>Rotation</th><td>CW clockwise or CCW counter-clockwise, viewed from the pinion (drive) end.</td></tr><tr><th>Type / code</th><td>Manufacturer type reference where known, useful for matching the old unit.</td></tr></tbody></table></div>
     <p class="note">Vehicle lists come from the manufacturer’s application data. Always check the OE number, pinion teeth and rotation against the old unit before ordering. Specifications may change without notice.</p>
   </div>
 </section>
@@ -326,7 +326,7 @@ const P = {
   xsel: {id:'xSel', all:'All', values(){ const c = countBy(d => d.s.teeth); return Object.keys(c).sort((a,b) => a - b).map(k => [k, k + ' teeth', c[k]]); }, match:(d,v) => d.s.teeth === v},
   stats(){ return [[DATA.length.toLocaleString(), 'Lucas part numbers'], [new Set(DATA.flatMap(d => d.mk)).size, 'Vehicle makes'], [new Set(DATA.flatMap(d => d.oe)).size.toLocaleString(), 'OE numbers']]; },
   tileRows(k){ const its = DATA.filter(d => d.g === k); return [['Part numbers', its.length.toLocaleString()], ['Vehicle makes', new Set(its.flatMap(d => d.mk)).size]]; },
-  emptyHint: 'Check the number, or clear a filter. Search works on Lucas numbers (LRSG…), order codes (LRSG…N), OE numbers, makes, models and engine sizes.'
+  emptyHint: 'Check the number, or clear a filter. Search works on Lucas numbers (LRSG…), OE numbers, makes, models and engine sizes.'
 };
 
 
@@ -354,7 +354,7 @@ function offerLine(o){
   return `<span class="org" title="Country of origin: ${esc(ORIGINS[o.o] || o.o)}"><b>${esc(o.o)}</b> ${esc(ORIGINS[o.o] || '')}</span>${c ? ' ' + c : ''}`;
 }
 function offersBlock(d,t){
-  return `<div class="offers"><div class="xh">${d.v.length > 1 ? 'Available as' : 'Order code'}</div>${d.v.map(o => `<div class="offer"><span class="sku">${hl(o.s,t)}</span>${offerLine(o)}<button class="cadd" type="button" data-cart="${esc(o.s)}">Cart</button></div>`).join('')}</div>`;
+  return `<div class="offers"><div class="xh">Origin and condition</div>${d.v.map(o => `<div class="offer">${offerLine(o)}</div>`).join('')}</div>`;
 }
 function oeBlock(d,t){
   if (!d.oe.length) return '';
@@ -385,7 +385,7 @@ function countBy(fn){ const c = {}; DATA.forEach(d => [].concat(fn(d)).forEach(v
 DATA.forEach(d => {
   d.s = d.s || {}; d.oe = d.oe || []; d.x = d.x || []; d.mk = d.mk || []; d.f = d.f || []; d.v = d.v || []; d.d = d.d || '';
   d.g = P.grpOf(d);
-  d._hay = norm([d.l, ...d.v.map(o => o.s), ...d.oe, ...d.x, ...d.mk, d.d, d.s.code || ''].join(' '));
+  d._hay = norm([d.l, ...d.oe, ...d.x, ...d.mk, d.d, d.s.code || ''].join(' '));
   d._fitn = norm(d.f.join(' | '));
 });
 DATA.sort((a,b) => natural(a.l, b.l));
@@ -403,15 +403,15 @@ function pic(d){ return d.i >= 0 && IMGS[d.i] ? `<img src="${IMGS[d.i]}" alt="Lu
 function card(d, t){
   const view = Object.assign({}, d, {v: offersOf(d)});
   return `<article class="card">${d.i >= 0 && IMGS[d.i] ? `<div class="ph">${pic(d)}</div>` : ''}<div class="bd">
-    <div class="t1"><div class="code">${hl(d.l, t)}</div><span class="t1b"><button class="copy" type="button" data-copy="${esc(d.l)}">Copy</button></span></div>
+    <div class="t1"><div class="code">${hl(d.l, t)}</div><span class="t1b"><button class="copy" type="button" data-copy="${esc(d.l)}">Copy</button><button class="cadd" type="button" data-cart="${esc(d.l)}">Cart</button></span></div>
     <div class="tp">${P.typeLine(d)}</div>
     ${d.d ? `<div class="ds">${hl(d.d, t)}</div>` : ''}
     ${kv(d)}${offersBlock(view, t)}${oeBlock(d,t)}${xBlock(d,t)}${fitBlock(d,t)}</div></article>`;
 }
 function table(rows, t){
   const out = [];
-  rows.forEach(d => offersOf(d).forEach(o => out.push(`<tr><td class="c part-no sku">${hl(o.s, t)}</td><td class="lp">${hl(d.l, t)}</td><td class="ds">${hl(d.d, t)}</td><td>${o.c ? COND[o.c] : '–'}</td><td><span class="org"><b>${esc(o.o)}</b></span></td><td class="mkc">${d.mk.map(m => hl(m,t)).join(', ') || '–'}</td><td><span class="oe">${d.oe.slice(0,4).map(x => hl(x,t)).join('<br>')}${d.oe.length > 4 ? '<br>…' : ''}</span></td></tr>`)));
-  return `<div class="tablewrap"><table class="list"><thead><tr><th>Order code</th><th>Lucas Part No.</th><th>Description</th><th>Condition</th><th>Origin</th><th>Make</th><th>OE numbers</th></tr></thead><tbody>${out.join('')}</tbody></table></div>`;
+  rows.forEach(d => { const os = offersOf(d); out.push(`<tr><td class="c part-no">${hl(d.l, t)}</td><td class="ds">${hl(d.d, t)}</td><td>${[...new Set(os.map(o => o.c ? COND[o.c] : '–'))].join(', ')}</td><td>${[...new Set(os.map(o => o.o))].map(o => `<span class="org"><b>${esc(o)}</b></span>`).join(' ')}</td><td class="mkc">${d.mk.map(m => hl(m,t)).join(', ') || '–'}</td><td><span class="oe">${d.oe.slice(0,4).map(x => hl(x,t)).join('<br>')}${d.oe.length > 4 ? '<br>…' : ''}</span></td></tr>`); });
+  return `<div class="tablewrap"><table class="list"><thead><tr><th>Lucas Part No.</th><th>Description</th><th>Condition</th><th>Origin</th><th>Make</th><th>OE numbers</th></tr></thead><tbody>${out.join('')}</tbody></table></div>`;
 }
 function chipRow(f, opts){
   const g = document.querySelector(`.fg[data-f=${f}]`);
@@ -481,12 +481,14 @@ render();
 
 <script>
 /* ================= request-for-price cart ================= */
-// Each order code (LP + N/R, or the LP alone for components) is one cart line; the description carries condition and origin.
-const BY_SKU = {}; DATA.forEach(d => d.v.forEach(o => { BY_SKU[o.s] = {d, o}; }));
+// One cart line per Lucas part number; the description carries condition and origin.
+const BY_NO = {}; DATA.forEach(d => { BY_NO[d.l] = d; });
 window.LucasCartDescribe = function(no){
-  const h = BY_SKU[no]; if (!h) return null;
-  const bits = [h.d.d]; if (h.o.c) bits.push(COND[h.o.c]); bits.push('Origin ' + h.o.o);
-  return { desc: bits.join(', '), make: h.d.mk.join(', '), oe: h.d.oe.slice(0, 3).join(', ') };
+  const d = BY_NO[no]; if (!d) return null;
+  const bits = [d.d];
+  const cs = [...new Set(d.v.map(o => o.c).filter(Boolean))].map(c => COND[c]); if (cs.length) bits.push(cs.join(' / '));
+  bits.push('Origin ' + [...new Set(d.v.map(o => o.o))].join(' / '));
+  return { desc: bits.join(', '), make: d.mk.join(', '), oe: d.oe.slice(0, 3).join(', ') };
 };
 (function(){
   const st = document.createElement('style');
