@@ -164,6 +164,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
           <img src="/assets/home/wiper-blades.jpg" alt="Lucas UltraBlade, AirFlex and EcoBlade wiper blades with their boxes" width="1000" height="454" aria-hidden="true">
           <img src="/assets/home/alternators.jpg" alt="Lucas alternator with its Lucas box" width="1199" height="686" aria-hidden="true">
           <img src="/assets/home/starters.jpg" alt="Lucas starter motor with its Lucas box" width="1500" height="1000" aria-hidden="true">
+          <img src="/assets/home/gas-springs.jpg" alt="Lucas gas springs with their Lucas boxes" width="1800" height="536" aria-hidden="true">
         </div>
         <div class="show-bar">
           <a href="/horns/" id="showLink">See the Horns catalogue</a>
@@ -181,7 +182,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
         <p>Every catalogue shares one cart, so you can mix ranges in a single request.</p>
       </div>
       <ul class="tiles">
-        <li><a class="tile" href="/gas-springs/"><div class="pic"><img src="/assets/home/gas-springs.jpg" alt="" width="1000" height="362" loading="lazy"></div><div class="txt"><h3>Gas Springs</h3><span>3,615 part numbers</span><span>146 vehicle makes</span></div></a></li>
+        <li><a class="tile" href="/gas-springs/"><div class="pic"><img src="/assets/home/gas-springs.jpg" alt="" width="1800" height="536" loading="lazy"></div><div class="txt"><h3>Gas Springs</h3><span>3,615 part numbers</span><span>146 vehicle makes</span></div></a></li>
         <li><a class="tile" href="/water-pumps/"><div class="pic"><img src="/assets/home/water-pumps.jpg" alt="" width="1000" height="327" loading="lazy"></div><div class="txt"><h3>Water Pumps</h3><span>1,256 part numbers</span><span>72 vehicle makes</span></div></a></li>
         <li><a class="tile" href="/bulbs/"><div class="pic"><img src="/assets/home/bulbs.jpg" alt="" width="1000" height="500" loading="lazy"></div><div class="txt"><h3>Bulbs</h3><span>388 part numbers</span><span>Halogen, LED and HID</span></div></a></li>
         <li><a class="tile" href="/filters/"><div class="pic"><img src="/assets/home/filters.jpg" alt="" width="1600" height="1000" loading="lazy"></div><div class="txt"><h3>Filters</h3><span>779 part numbers</span><span>126 vehicle makes</span></div></a></li>
@@ -260,7 +261,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
   'use strict';
   /* ---------- product slideshow ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll('#slides img'));
-  var RANGES = [['Horns', '/horns/'], ['Water Pumps', '/water-pumps/'], ['Bulbs', '/bulbs/'], ['Filters', '/filters/'], ['Wiper Blades', '/wiper-blades/'], ['Alternators', '/alternators/'], ['Starters', '/starters/']];
+  var RANGES = [['Horns', '/horns/'], ['Water Pumps', '/water-pumps/'], ['Bulbs', '/bulbs/'], ['Filters', '/filters/'], ['Wiper Blades', '/wiper-blades/'], ['Alternators', '/alternators/'], ['Starters', '/starters/'], ['Gas Springs', '/gas-springs/']];
   var dots = document.getElementById('dots'), link = document.getElementById('showLink'), at = 0, timer = null;
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   RANGES.forEach(function (r, k) {
