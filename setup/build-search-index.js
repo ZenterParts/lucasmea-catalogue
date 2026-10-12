@@ -54,15 +54,16 @@ grab('bulbs/index.html', 'PARTS').forEach(p =>
   add(p.no, 2, ['Bulb', p.item, p.rngName, p.v && p.v + 'V', p.w && p.w + 'W', p.base].filter(Boolean).join(' '),
       [p.type, p.item, p.rng, p.rngName, p.base, p.v && p.v + 'v', p.w && p.w + 'w', p.os, p.ph, p.he, p.fa, 'osram', 'philips', 'hella']));
 
-// Filters: one catalogue for oil, air and fuel filters. Each vehicle row lists its oil, air and fuel filter numbers.
+// Filters: one catalogue for oil, air, fuel and cabin filters. Each vehicle row lists its oil, air, fuel and cabin filter numbers.
 const fil = grab('filters/index.html', 'D'), filVeh = {};
 fil.v.forEach(r => {
   const veh = [fil.mk[r[0]], fil.md[r[1]], r[2], r[3]];
-  [r[8], r[9], r[10]].forEach(list => String(list || '').split(' ').filter(Boolean).forEach(lp => (filVeh[lp] = filVeh[lp] || []).push(veh)));
+  [r[8], r[9], r[10], r[12]].forEach(list => String(list || '').split(' ').filter(Boolean).forEach(lp => (filVeh[lp] = filVeh[lp] || []).push(veh)));
 });
-const FKIND = { o: 'Oil filter', a: 'Air filter', f: 'Fuel filter' };
+const FKIND = { o: 'Oil filter', a: 'Air filter', f: 'Fuel filter', c: 'Cabin filter' };
 fil.p.forEach(p => {
-  const kind = FKIND[p.c], sub = p.desc && p.desc.toLowerCase() !== kind.toLowerCase() ? p.desc : '';
+  const kind = FKIND[p.c], dl = (p.desc || '').toLowerCase(), base = kind.split(' ')[0].toLowerCase();
+  const sub = p.desc && dl !== kind.toLowerCase() && !(dl.includes(base) && dl.includes('filter')) ? p.desc : '';
   let size = '';
   if (p.sz) { const v = p.sz[0].split(' · '); size = /supplier/i.test(p.sz[1]) ? p.sz[0] : v[0] + ' mm' + (v[1] ? ', ' + v[1] : ''); }
   add(p.no, 3, [kind, sub, size].filter(Boolean).join(', '), [kind, p.desc, p.sz && p.sz[0], Object.values(p.x || {}), Object.keys(p.x || {}), p.oe, p.oth, filVeh[p.no] || []]);
