@@ -156,6 +156,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
           <img src="/assets/home/bulbs.jpg" alt="Lucas halogen and LightBooster bulbs with their packs" width="1000" height="500" aria-hidden="true">
           <img src="/assets/home/oil-filters.jpg" alt="Lucas filters with their box" width="814" height="603" aria-hidden="true">
           <img src="/assets/home/wiper-blades.jpg" alt="Lucas UltraBlade, AirFlex and EcoBlade wiper blades with their boxes" width="1000" height="454" aria-hidden="true">
+          <img src="/assets/home/alternators.jpg" alt="Lucas alternator with its Lucas box" width="1199" height="686" aria-hidden="true">
         </div>
         <div class="show-bar">
           <a href="/horns/" id="showLink">See the Horns catalogue</a>
@@ -250,7 +251,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
   'use strict';
   /* ---------- product slideshow ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll('#slides img'));
-  var RANGES = [['Horns', '/horns/'], ['Water Pumps', '/water-pumps/'], ['Bulbs', '/bulbs/'], ['Filters', '/filters/'], ['Wiper Blades', '/wiper-blades/']];
+  var RANGES = [['Horns', '/horns/'], ['Water Pumps', '/water-pumps/'], ['Bulbs', '/bulbs/'], ['Filters', '/filters/'], ['Wiper Blades', '/wiper-blades/'], ['Alternators', '/alternators/']];
   var dots = document.getElementById('dots'), link = document.getElementById('showLink'), at = 0, timer = null;
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   RANGES.forEach(function (r, k) {
