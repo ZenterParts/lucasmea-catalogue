@@ -100,8 +100,6 @@
   .horn-snd button{display:inline-flex;align-items:center;gap:7px}
   .horn-snd button svg{flex:none}
   .horn-snd button.playing{background:var(--amber);border-color:var(--amber);color:#fff}
-  .hotspot.honk .dot{animation:honk .12s linear 6}
-  @keyframes honk{0%,100%{transform:translate(0,0)}25%{transform:translate(-2px,1px)}75%{transform:translate(2px,-1px)}}
   @media (max-width:800px){ .horn-snd{order:3;flex-basis:100%} }
   .catalogue-map .count{margin-left:auto;color:var(--steel);font-size:13px;font-weight:400}
   /* footer, as on the catalogue pages */
@@ -1226,11 +1224,7 @@ const CONFIG = {
     a.querySelector(".label").textContent = m.label;
     a.setAttribute("aria-label", "See " + p.label + " taken apart");
     a.addEventListener("pointerdown", e => e.stopPropagation());
-    a.addEventListener("click", e => {
-      e.preventDefault();
-      if (p.model === "horn"){ playHorn("disc"); a.classList.add("honk"); setTimeout(() => { a.classList.remove("honk"); openPart(i); }, 650); }
-      else openPart(i);
-    });
+    a.addEventListener("click", e => { e.preventDefault(); openPart(i); });
     a.addEventListener("pointerenter", () => setActive(i));
     a.addEventListener("pointerleave", () => setActive(-1));
     a.addEventListener("focus", () => { if (mode === "car"){ setActive(i); spinTo(m.faceDeg); } });
