@@ -74,6 +74,7 @@
       '<div class="items" id="snav-items" style="display:contents">' +
         '<a href="/"' + cls(onHome) + '>Home</a>' +
         '<div class="dd"><button type="button" aria-expanded="false">Catalogues <span class="caret"></span></button><div class="menu wide">' + catalogueMenu + '</div></div>' +
+        '<a href="/find-by-car/"' + cls(path.indexOf('/find-by-car/') === 0) + '>Find by car</a>' +
         '<a href="' + ABOUT_URL + '" target="_blank" rel="noopener">About Lucas</a>' +
         '<a href="/contact/"' + cls(path.indexOf('/contact/') === 0) + '>Contact us</a>' +
       '</div>' +

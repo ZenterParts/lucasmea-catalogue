@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find your part on the car | Lucas MEA</title>
+<meta name="description" content="Turn the car and pick a part: alternators, starters, water pumps, filters, horns, bulbs, wiper blades and gas springs. See each part taken apart, then open its Lucas catalogue.">
+<link rel="icon" type="image/png" href="/assets/icon-gas-springs.png">
+<link rel="stylesheet" href="/assets/lucas-brand.css">
+<link rel="stylesheet" href="/assets/lucas-header.css">
+<style>
+  :root{
+    --bg:#F2F3F2; --ink:#231F20; --steel:#5d6063; --line:#d3d7d4;
+    --amber:#00954C; --paper:#FFFFFF; --font:"League Spartan","Noto Sans",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--font)}
+  a{color:inherit}
+  :focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+
+
+  main{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:clamp(16px,3vw,40px);
+       padding:32px clamp(16px,4vw,48px) 48px;align-items:center;max-width:1440px;margin:0 auto}
+  .intro h1{font:400 clamp(34px,4vw,54px)/1.04 var(--font);text-transform:uppercase;margin:0 0 18px}
+  .intro p{color:var(--steel);margin:0 0 28px;max-width:32ch}
+  .cta{display:inline-block;background:var(--amber);color:var(--paper);padding:14px 22px 12px;border-radius:0;text-decoration:none;font-weight:600;white-space:nowrap}
+  .cta:hover{background:#007a3e}
+
+  .catalogue-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 32px;margin-top:24px}
+  .catalogue-map h3{margin:0 0 6px;font:600 15px/1.3 var(--font);color:var(--steel)}
+  .catalogue-map ul{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+  .catalogue-map a{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);text-decoration:none;font-size:15px}
+  .catalogue-map a::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;transition:background .2s}
+  .catalogue-map a:hover::before,.catalogue-map a.active::before,.catalogue-map a:focus-visible::before,.catalogue-map a.current::before{background:var(--amber)}
+  .catalogue-map a:hover,.catalogue-map a.active,.catalogue-map a.current{font-weight:500}
+
+  .viewer{min-width:0}
+  .bar{min-height:52px;display:flex;align-items:center}
+  .hint{margin:0;color:var(--steel)}
+  .partui{display:flex;align-items:center;gap:12px;width:100%}
+  .ptitle{flex:1;min-width:0}
+  .partui h2{margin:0;font:600 30px/1.05 var(--font)}
+  .pnote{margin:4px 0 0;color:var(--steel);font-size:14px}
+  .partui .cta{padding:11px 18px}
+  .ghost{background:transparent;border:1px solid var(--ink);color:var(--ink);padding:11px 16px 9px;border-radius:0;
+         font:500 15px/1.2 var(--font);cursor:pointer;white-space:nowrap}
+  .ghost:hover{background:var(--paper)}
+
+  .stage{position:relative;overflow:hidden;width:100%;aspect-ratio:16/10;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+  .stage.dragging{cursor:grabbing}
+  .stage canvas,.stage img.frame{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity .18s}
+  .stage img.frame{object-fit:contain;pointer-events:none}
+  .stage.swapping canvas,.stage.swapping img.frame,.stage.swapping .tag{opacity:0 !important}
+
+  .hotspot{position:absolute;left:0;top:0;display:flex;align-items:center;gap:8px;text-decoration:none;
+           transition:opacity .2s;will-change:transform}
+  .hotspot .dot{width:20px;height:20px;border-radius:50%;background:var(--amber);border:3px solid var(--paper);
+                box-shadow:0 0 0 1px rgba(24,33,43,.4),0 2px 6px rgba(24,33,43,.25);flex:none;position:relative}
+  .hotspot .dot::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--amber);opacity:0}
+  .hotspot.active .dot::after{animation:ping 1.2s ease-out infinite}
+  .hotspot .dot{width:18px;height:18px}
+  .hotspot .label{background:var(--paper);padding:5px 10px 2px;border-radius:2px;font:500 14px/1.35 var(--font);
+                  white-space:nowrap;box-shadow:0 1px 4px rgba(24,33,43,.18);opacity:0;transition:opacity .15s;pointer-events:none}
+  .hotspot:hover .label,.hotspot.active .label,.hotspot:focus-visible .label{opacity:1}
+  .hotspot.active{z-index:2}
+  .hotspot:hover .label,.hotspot.active .label{background:var(--ink);color:var(--paper)}
+  @keyframes ping{from{transform:scale(.6);opacity:.9}to{transform:scale(1.5);opacity:0}}
+
+  /* labels on the exploded parts */
+  .tag{position:absolute;left:0;top:0;display:flex;align-items:center;pointer-events:none;will-change:transform;opacity:0}
+  .tag i{width:10px;height:10px;border-radius:50%;background:var(--ink);border:2px solid var(--paper);flex:none}
+  .tag b{width:18px;height:1px;background:var(--ink);flex:none}
+  .tag span{background:var(--paper);padding:2px 8px;border-radius:2px;font:500 13px/1.4 var(--font);white-space:nowrap;
+            box-shadow:0 1px 4px rgba(24,33,43,.18)}
+
+  .controls{display:flex;align-items:center;gap:16px;margin-top:8px;color:var(--steel);font-size:14px}
+  .controls input{flex:1;accent-color:var(--ink)}
+  .calib{position:absolute;right:8px;top:8px;background:var(--paper);padding:6px 10px;font:500 13px/1.4 var(--font);border-radius:2px}
+
+  @media (max-width:800px){
+    main{grid-template-columns:1fr;min-height:0}
+    .viewer{order:2}
+    .catalogue-map{grid-template-columns:1fr}
+    .intro{display:contents}
+    .intro .text{order:1}
+    .stage{aspect-ratio:4/3}
+    .hotspot .label{display:none}
+    .hotspot.active .label{display:block}
+    .partui{flex-wrap:wrap;row-gap:8px}
+    .ptitle{order:-1;flex-basis:100%}
+    .partui h2{font-size:28px}
+    .partui .ghost,.partui .cta{padding:9px 12px;font-size:14px}
+    .tag span{font-size:12px;padding:1px 6px}
+    .tag b{width:10px}
+  }
+  @media (prefers-reduced-motion:reduce){ .hotspot.active .dot::after{animation:none} }
+  .catalogue-map .count{margin-left:auto;color:var(--steel);font-size:13px;font-weight:400}
+  /* footer, as on the catalogue pages */
+  .site-foot{background:#fff;border-top:1px solid var(--line)}
+  .site-foot .in{max-width:1440px;margin:0 auto;padding:20px clamp(16px,4vw,48px);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;color:#00954C;font-weight:700;letter-spacing:.014em}
+  .site-foot a{color:inherit;text-decoration:none}
+  .site-foot .bar{height:10px;background:#00954C}
+</style>
+</head>
+<body>
+<header class="lx-head">
+  <a class="lx-home" href="/" aria-label="Lucas online catalogues home"><img src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
+  <p class="lx-tag">Every Box Tells a Story</p>
+</header>
+<div id="site-nav" style="min-height:60px;background:#000"></div>
+
+<main>
+  <section class="intro">
+    <div class="text">
+      <h1>Find your part on the car</h1>
+      <p>Turn the car and select a marked part to see it taken apart, then open its Lucas catalogue. Select the car itself to see every catalogue.</p>
+      <a class="cta" id="ctaCatalogue" href="#">See all catalogues</a>
+    </div>
+  </section>
+
+  <section class="viewer">
+    <div class="bar">
+      <p class="hint" id="carHint">Select a marked part to see it taken apart.</p>
+      <div class="partui" id="partUI" hidden>
+        <button class="ghost" id="backBtn" type="button">Back to car</button>
+        <div class="ptitle"><h2 id="partTitle" tabindex="-1"></h2><p class="pnote" id="partNote" hidden></p></div>
+        <button class="ghost" id="explodeBtn" type="button" aria-pressed="true">Put back together</button>
+        <a class="cta" id="partCta" href="#">Open catalogue</a>
+      </div>
+    </div>
+    <div class="stage" id="stage" tabindex="0" role="application"
+         aria-label="3D view you can rotate. Use left and right arrow keys to turn it.">
+    </div>
+    <div class="controls">
+      <span id="dragHint">Drag to turn the car</span>
+      <input type="range" id="angle" min="0" max="359" value="40" aria-label="Rotate view">
+    </div>
+    <nav class="catalogue-map" id="partList" aria-label="Parts on this car"></nav>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="in"><a href="https://www.lucasmeaparts.com" target="_blank" rel="noopener">lucasmeaparts.com</a><span>OUR RANGE GOES FURTHER.</span></div>
+  <div class="bar"></div>
+</footer>
+
+<script src="/assets/vendor-three-r128.min.js"></script>
+<script>
+/* =====================================================================
+   SETTINGS: edit this block only
+   ===================================================================== */
+const CONFIG = {
+  catalogueUrl: "/#catalogues",   // where a click on the car body goes
+  openInNewTab: false,
+
+  // Optional: a licensed 3D model (.glb) of a specific real vehicle, used instead of the built-in SUV.
+  // It is scaled to lengthMetres and centred automatically; rotateDeg turns it so the front faces +x.
+  // If you use one, re-check the part positions below with ?calibrate.
+  vehicleModel: { url: "", lengthMetres: 4.6, rotateDeg: 0 },
+
+  // Your purchased 360° photo set for the car. While count is 0 the page shows the built-in 3D car.
+  // Example: files images/spin/car_01.jpg ... car_36.jpg  ->  count: 36, startNumber: 1, digits: 2
+  photoSpin: {
+    pattern: "images/spin/car_{n}.jpg",
+    count: 0,
+    startNumber: 1,
+    digits: 2,
+    firstFrameAngle: 0,   // angle (degrees) that matches the first photo; find it with ?calibrate
+    clockwise: true,      // set false if the photos turn the other way
+    calib: { scale: 1, dx: 0, dy: 0 }  // nudge hotspot positions to sit on your photos
+  },
+
+  // Each part: list group, catalogue link, which exploded model to show, position on the car
+  // (metres, front = +x, left side = +z, up = +y; "hood" places it on the bonnet surface), which way the part faces,
+  // the car angle used when the part is hovered in the list, and the starting angle of its exploded view.
+  // slug is used in the page address, e.g. /find-by-car/#alternators opens the alternator exploded view.
+  // note (optional) is shown under the part name in its exploded view.
+  // also (optional) adds more markers on the car that open the same part, e.g. the rear wiper.
+  parts: [
+    { label: "Alternators", group: "Under the bonnet", slug: "alternators", model: "alternator", url: "/alternators/", pos: [1.62, "hood", 0.42], normal: [0.3, 1, 0.2], faceDeg: 50, viewDeg: 30, note: "200 Lucas part numbers" },
+    { label: "Starter motors", group: "Under the bonnet", slug: "starters", model: "starter", url: "/starters/", pos: [1.32, "hood", 0.1], normal: [0.3, 1, 0], faceDeg: 60, viewDeg: 30, note: "72 Lucas part numbers" },
+    { label: "Water pumps", group: "Under the bonnet", slug: "water-pumps", model: "waterPump", url: "/water-pumps/", pos: [1.95, "hood", -0.12], normal: [0.3, 1, 0], faceDeg: 100, viewDeg: 30, note: "1,256 Lucas part numbers" },
+    { label: "Filters", group: "Under the bonnet", slug: "filters", model: "filters", url: "/filters/", pos: [1.6, "hood", -0.42], normal: [0.3, 1, -0.2], faceDeg: 120, viewDeg: 35, note: "Oil, air, fuel and cabin filters: 779 Lucas part numbers" },
+    { label: "Horns", group: "Lights & sound", slug: "horns", model: "horn", url: "/horns/", pos: [2.33, 0.60, -0.22], normal: [1, 0.1, -0.25], faceDeg: 110, viewDeg: 55, note: "21 Lucas part numbers" },
+    { label: "Bulbs", group: "Lights & sound", slug: "bulbs", model: "bulb", url: "/bulbs/", pos: [2.255, 0.8, 0.71], normal: [1, 0.15, 0.9], faceDeg: 55, viewDeg: 30, note: "Halogen, LED and HID: 388 Lucas part numbers",
+      also: [ { label: "Bulbs", pos: [-2.27, 0.95, 0.69], normal: [-1, 0.1, 0.9], faceDeg: 305 } ] },
+    { label: "Wiper blades", group: "Body", slug: "wiper-blades", model: "wiper", url: "/wiper-blades/", pos: [0.875, "surface", 0.34], normal: [0.5, 1, 0.1], faceDeg: 25, viewDeg: 20, note: "141 Lucas part numbers",
+      also: [ { label: "Rear wiper blade", pos: [-2.13, "surface", 0.3], normal: [-1, 0.5, 0.15], faceDeg: 300 } ] },
+    { label: "Gas springs", group: "Body", slug: "gas-springs", model: "gasSpring", url: "/gas-springs/", pos: [-2.29, 1.22, 0.42], normal: [-1, 0.35, 0.3], faceDeg: 290, viewDeg: 20, note: "Boot, bonnet and tailgate: 3,615 Lucas part numbers" }
+  ]
+};
+/* ===================================================================== */
+
+(function(){
+  const $ = id => document.getElementById(id);
+  const stage = $("stage"), slider = $("angle"), list = $("partList");
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const calibrating = new URLSearchParams(location.search).has("calibrate");
+
+  $("ctaCatalogue").href = CONFIG.catalogueUrl;
+  if (CONFIG.openInNewTab) $("partCta").target = "_blank";
+
+  function openUrl(url){
+    if (CONFIG.openInNewTab) window.open(url, "_blank", "noopener"); else location.href = url;
+  }
+
+  /* ---------- three.js scene ---------- */
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(26, 16/10, 0.1, 200);
+  const ORBIT = { radius: 10.2, elevation: 0.22, targetY: 0.8 };
+
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  scene.environment = studioEnvironment();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a9099, 0.35));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(4, 8, 5); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xdfe7ef, 0.25); fill.position.set(-6, 3, -4); scene.add(fill);
+
+  // soft studio light boxes, used only for reflections in paint, glass and metal
+  function studioEnvironment(){
+    const s = new THREE.Scene();
+    const room = new THREE.Mesh(new THREE.BoxGeometry(24, 12, 24), new THREE.MeshBasicMaterial({ color: 0x4d545b, side: THREE.BackSide }));
+    room.position.y = 5; s.add(room);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), new THREE.MeshBasicMaterial({ color: 0x24282c }));
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.95; s.add(ground);
+    const box = (w, h, x, y, z, rx, ry, k) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
+      m.position.set(x, y, z); m.rotation.set(rx, ry, 0); s.add(m);
+    };
+    box(14, 2.2, 0, 10.9, 0, Math.PI / 2, 0, 6);
+    box(10, 1.4, 0, 10.9, 4, Math.PI / 2, 0, 3);
+    box(1.6, 8, -11.9, 5, 0, 0, Math.PI / 2, 4);
+    box(1.6, 8, 11.9, 5, 0, 0, -Math.PI / 2, 4);
+    box(10, 4, 0, 4, -11.9, 0, 0, 2);
+    box(10, 4, 0, 4, 11.9, 0, Math.PI, 2.5);
+    const pm = new THREE.PMREMGenerator(renderer);
+    const tex = pm.fromScene(s, 0.035).texture; pm.dispose();
+    return tex;
+  }
+  // lights follow the camera in the part view so every side is lit
+  const camLight = new THREE.DirectionalLight(0xffffff, 0); scene.add(camLight); scene.add(camLight.target);
+
+  const car = buildCar(); scene.add(car); loadVehicleModel();
+  const floor = buildTurntable(); scene.add(floor);
+
+  function spline(pts){
+    const n = pts.length, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), d = [], m = new Array(n);
+    for (let i = 0; i < n - 1; i++) d.push((ys[i+1] - ys[i]) / (xs[i+1] - xs[i]));
+    m[0] = d[0]; m[n-1] = d[n-2];
+    for (let i = 1; i < n - 1; i++) m[i] = d[i-1] * d[i] <= 0 ? 0 : (d[i-1] + d[i]) / 2;
+    for (let i = 0; i < n - 1; i++){
+      if (d[i] === 0){ m[i] = m[i+1] = 0; continue; }
+      const a = m[i] / d[i], b = m[i+1] / d[i], h = a*a + b*b;
+      if (h > 9){ const t = 3 / Math.sqrt(h); m[i] = t*a*d[i]; m[i+1] = t*b*d[i]; }
+    }
+    return x => {
+      if (x <= xs[0]) return ys[0];
+      if (x >= xs[n-1]) return ys[n-1];
+      let i = 0; while (x > xs[i+1]) i++;
+      const h = xs[i+1] - xs[i], t = (x - xs[i]) / h, t2 = t*t, t3 = t2*t;
+      return (2*t3 - 3*t2 + 1)*ys[i] + (t3 - 2*t2 + t)*h*m[i] + (-2*t3 + 3*t2)*ys[i+1] + (t3 - t2)*h*m[i+1];
+    };
+  }
+
+  /* A generic modern crossover SUV (no brand), 4.64 m long. Front = +x, left = +z, ground = y 0. */
+  function buildCar(){
+    const g = new THREE.Group();
+    const L = 2.32, W = 0.93;
+    const yTop = spline([[-2.32,0.98],[-2.27,1.18],[-2.17,1.40],[-2.0,1.56],[-1.82,1.655],[-1.2,1.70],[-0.3,1.705],
+                         [0.1,1.67],[0.55,1.42],[0.97,1.13],[1.2,1.085],[1.8,1.03],[2.1,0.98],[2.25,0.9],[2.32,0.80]]);
+    const yS   = spline([[-2.32,0.88],[-2.2,1.0],[-2.0,1.06],[-1.0,1.04],[0.0,1.01],[0.97,0.99],[1.5,0.96],[2.0,0.9],[2.25,0.82],[2.32,0.76]]);
+    const yB   = spline([[-2.32,0.48],[-2.15,0.38],[-1.95,0.30],[-1.6,0.24],[1.6,0.24],[1.95,0.30],[2.18,0.36],[2.32,0.42]]);
+    const inset= spline([[-2.32,0.10],[-2.0,0.17],[-1.6,0.2],[0.0,0.22],[0.6,0.2],[0.97,0.12],[1.3,0.08],[2.32,0.07]]);
+    const halfW = x => W * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(x) / L, 7)), 1 / 7);
+    const ARCH = { r: 0.45, y: 0.36, xs: [1.35, -1.35], well: 0.62 };
+
+    const env = x => {
+      const w = halfW(x), yt = yTop(x), ys = yS(x);
+      const hR = Math.min(0.11, 0.65 * (yt - ys));
+      return { w, f: w / W, yb: yB(x), ys, yt, wt: w * (1 - inset(x)), hR, ye: yt - hR };
+    };
+    // height of the roof/hood surface at (x, z)
+    const topY = (x, z) => {
+      const e = env(x), c = Math.min(1, Math.abs(z) / e.wt);
+      return e.ye + e.hR * Math.pow(Math.sin(Math.acos(Math.pow(c, 1 / 0.77))), 0.77);
+    };
+    g.userData = { topY, halfW, yS };
+
+    // half cross-section from bottom centre to top centre; seg: 0 bottom, 1 corner, 2 side, 3 window band, 4 roof/hood
+    function section(x){
+      const e = env(x), tuck = 0.04 * e.f, rb = 0.08 * e.f, pts = [];
+      const add = (z, y, seg, k) => pts.push({ z, y, seg, k });
+      for (let i = 0; i <= 4; i++) add((e.w - tuck - rb) * i / 4, e.yb, 0, i / 4);
+      for (let i = 1; i <= 5; i++){ const a = -Math.PI/2 + i / 5 * Math.PI/2; add(e.w - tuck - rb + rb*Math.cos(a), e.yb + rb + rb*Math.sin(a), 1, i / 5); }
+      const s0 = e.yb + rb;
+      const sideZ = y => { const t = (y - s0) / (e.ys - s0); return e.w - tuck * (1 - t) * (1 - t); };
+      const yc = Math.min(e.yb + 0.16, s0 + (e.ys - s0) * 0.5);
+      for (let i = 1; i <= 6; i++){ const y = s0 + (yc - s0) * i / 6; add(sideZ(y), y, 5, i / 6); }
+      for (let i = 1; i <= 28; i++){ const y = yc + (e.ys - yc) * i / 28; add(sideZ(y), y, 2, i / 28); }
+      for (let i = 1; i <= 12; i++){ const t = i / 12; add(e.w + (e.wt - e.w) * t + 0.012 * e.f * Math.sin(Math.PI * t), e.ys + (e.ye - e.ys) * t, 3, t); }
+      for (let i = 1; i <= 18; i++){ const th = i / 18 * Math.PI/2; add(e.wt * Math.pow(Math.cos(th), 0.77), e.ye + e.hR * Math.pow(Math.sin(th), 0.77), 4, i / 18); }
+      return pts;
+    }
+
+    const NU = 420, half = section(0).length, ring = half * 2 - 2;
+    const pos = [], well = [], xsSt = [], meta = [];
+    for (let j = 0; j < ring; j++){ const h = j < half ? j : ring - j; meta.push(h); }
+    let halfPts0 = null;
+    for (let u = 0; u <= NU; u++){
+      const x = L * Math.sin((u / NU * 2 - 1) * Math.PI / 2);
+      xsSt.push(x);
+      const pts = section(x); if (!halfPts0) halfPts0 = pts;
+      for (let j = 0; j < ring; j++){
+        const p = pts[meta[j]], s = j < half ? 1 : -1;
+        let z = p.z * s, inWell = false;
+        if (Math.abs(z) > ARCH.well) for (const ax of ARCH.xs){
+          if ((x - ax) ** 2 + (p.y - ARCH.y) ** 2 < ARCH.r ** 2){ z = ARCH.well * s; inWell = true; }
+        }
+        pos.push(x, p.y, z); well.push(inWell);
+      }
+    }
+    const segOf = h => halfPts0[h].seg, kOf = h => halfPts0[h].k;
+
+    // paint and trims
+    const phys = o => { const m = new THREE.MeshPhysicalMaterial(o); m.color.convertSRGBToLinear(); if (o.emissive) m.emissive.convertSRGBToLinear(); return m; };
+    const M = {
+      paint:   phys({ color: 0x1d3550, metalness: 0.6, roughness: 0.33, clearcoat: 1, clearcoatRoughness: 0.05 }),
+      gap:     phys({ color: 0x0d1724, metalness: 0.5, roughness: 0.5 }),
+      glass:   phys({ color: 0x06090c, metalness: 0, roughness: 0.03, clearcoat: 1, envMapIntensity: 0.7 }),
+      trim:    phys({ color: 0x0c0d0f, metalness: 0.3, roughness: 0.22, clearcoat: 1 }),
+      plastic: phys({ color: 0x1b1d20, metalness: 0, roughness: 0.78 }),
+      chrome:  phys({ color: 0xe6e9ec, metalness: 1, roughness: 0.12 }),
+      grille:  phys({ color: 0x101215, metalness: 0.4, roughness: 0.35 }),
+      lamp:    phys({ color: 0x2c333a, metalness: 0.85, roughness: 0.1, clearcoat: 1 }),
+      drl:     phys({ color: 0xffffff, emissive: 0xf4f6ff, emissiveIntensity: 1.2, roughness: 0.3 }),
+      tail:    phys({ color: 0x6d0a10, emissive: 0x3a0306, metalness: 0.2, roughness: 0.18, clearcoat: 1 }),
+      plate:   phys({ color: 0xeeeeea, roughness: 0.6 }),
+      alloy:   phys({ color: 0xb9c0c7, metalness: 0.9, roughness: 0.22 }),
+      tyre:    phys({ color: 0x1c1d1f, roughness: 0.88, envMapIntensity: 0.35 }),
+      disc:    phys({ color: 0x6d7379, metalness: 0.8, roughness: 0.45 })
+    };
+    const gaps = [0.915, -0.27, -1.22];
+
+    function classify(cx, cy, cz, seg, k, inWell, x0, x1){
+      const az = Math.abs(cz), yb = yB(cx), ys = yS(cx);
+      if (inWell || seg <= 1 || seg === 5) return "plastic";
+      let out = "paint";
+      if (seg === 3 && cx > -1.95 && cx < 0.93){
+        if (k <= 1/12 + 1e-6) out = "chrome";
+        else if (k > 0.9) out = "trim";
+        else if (cx > -0.33 && cx < -0.21) out = "trim";
+        else if (cx > -1.42 && cx < -1.30) out = "paint";
+        else out = "glass";
+      } else if (seg === 4){
+        if (cx > 0.12 && cx < 0.95) out = k > 0.12 ? (cx > 0.9 || cx < 0.17 ? "trim" : "glass") : "trim";
+        else if (cx < -1.84 && cx > -2.22) out = k > 0.14 ? "glass" : "paint";
+      }
+      if (out === "paint" && seg === 2 && cy < ys - 0.01)
+        for (const gx of gaps) if (gx >= x0 && gx <= x1) return "gap";
+      if (out === "paint" && (seg === 3 || seg === 4) && 2.12 >= x0 && 2.12 <= x1) return "gap";
+      return out;
+    }
+
+    const groups = {}; Object.keys(M).forEach(k => groups[k] = []);
+    for (let i = 0; i < NU; i++) for (let j = 0; j < ring; j++){
+      const a = i*ring + j, b = i*ring + (j+1) % ring, c = (i+1)*ring + j, d = (i+1)*ring + (j+1) % ring;
+      let cx = 0, cy = 0, cz = 0;
+      for (const v of [a,b,c,d]){ cx += pos[3*v]; cy += pos[3*v+1]; cz += pos[3*v+2]; }
+      cx /= 4; cy /= 4; cz /= 4;
+      const h = Math.max(meta[j], meta[(j+1) % ring]);
+      const m = classify(cx, cy, cz, segOf(h), kOf(h), well[a] || well[b] || well[c] || well[d], xsSt[i], xsSt[i+1]);
+      groups[m].push(a, c, b, b, c, d);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    const idx = [], mats = [];
+    Object.keys(M).forEach(k => { if (!groups[k].length) return; geo.addGroup(idx.length, groups[k].length, mats.length); for (const v of groups[k]) idx.push(v); mats.push(M[k]); });
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    // make sure faces point outwards
+    const nrm = geo.attributes.normal, mid = Math.floor(NU / 2) * ring + (half - 1);
+    if (nrm.getY(mid) < 0){ for (let i = 0; i < idx.length; i += 3){ const t = idx[i+1]; idx[i+1] = idx[i+2]; idx[i+2] = t; } geo.setIndex(idx); geo.computeVertexNormals(); }
+    g.add(new THREE.Mesh(geo, mats));
+
+    const add = (geom, mat, x, y, z) => { const m = new THREE.Mesh(geom, mat); m.position.set(x, y, z); g.add(m); return m; };
+
+    for (const s of [1, -1]){
+      // wheel-arch trims
+      for (const ax of ARCH.xs){
+        const lip = add(new THREE.TorusGeometry(ARCH.r + 0.008, 0.03, 10, 48, Math.PI * 1.16), M.plastic, ax, ARCH.y, s * (halfW(ax) - 0.012));
+        lip.rotation.z = -Math.PI * 0.08; lip.scale.z = 0.55;
+      }
+      // mirrors (left/right)
+      const mx = 0.86, my = yS(mx) + 0.085, mw = halfW(mx);
+      add(new THREE.SphereGeometry(1, 28, 18), M.paint, mx, my, s * (mw + 0.11)).scale.set(0.065, 0.06, 0.11);
+      add(new THREE.SphereGeometry(1, 20, 14), M.trim, mx - 0.03, my, s * (mw + 0.115)).scale.set(0.035, 0.052, 0.098);
+      add(new THREE.BoxGeometry(0.07, 0.035, 0.08), M.trim, mx + 0.01, my - 0.04, s * (mw + 0.03));
+      // door handles
+      for (const hx of [0.3, -0.76]) add(new THREE.BoxGeometry(0.15, 0.024, 0.02), M.chrome, hx, yS(hx) - 0.075, s * (halfW(hx) + 0.006));
+      // roof rails
+      const railPts = [];
+      for (let i = 0; i <= 14; i++){ const x = -1.62 + i / 14 * 1.55, z = 0.6 * s; railPts.push(new THREE.Vector3(x, topY(x, z) + 0.032, z)); }
+      add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railPts), 48, 0.017, 8, false), M.alloy, 0, 0, 0);
+      for (const fx of [-1.6, -0.86, -0.09]) add(new THREE.BoxGeometry(0.07, 0.05, 0.04), M.trim, fx, topY(fx, 0.6 * s) + 0.016, 0.6 * s);
+    }
+
+    /* ---------- lamps, grille and plate: layered units that follow the body surface ---------- */
+    function surfaceZ(x, y){
+      const pts = section(x);
+      for (let i = 5; i < pts.length - 1; i++){
+        const a = pts[i], b = pts[i + 1];
+        if (y >= a.y && y <= b.y) return a.z + (b.z - a.z) * (b.y > a.y ? (y - a.y) / (b.y - a.y) : 0);
+      }
+      return y < pts[5].y ? pts[5].z : 0;
+    }
+    const phiX = (phi, end) => end * L * Math.pow(Math.cos(Math.abs(phi)), 2 / 7);
+    const cap = (t, k) => Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, t)))), k);
+    const ORIGIN = new THREE.Vector3(0, 0.7, 0);
+    // end: 1 front / -1 rear; side: 1 left / -1 right; phi runs along the plan outline (0 = centre of nose or tail)
+    function unit(end, side, phiA, phiB, outline){
+      const pt = (t, s) => {
+        const phi = phiA + (phiB - phiA) * t, x = phiX(phi, end), r = outline(t, x), y = r[0] + (r[1] - r[0]) * s;
+        return new THREE.Vector3(x, y, surfaceZ(x, y) * side * (phi < 0 ? -1 : 1));
+      };
+      const normal = (t, s) => {
+        const e = 0.004;
+        const a = pt(Math.min(1, t + e), s).sub(pt(Math.max(0, t - e), s));
+        const b = pt(t, Math.min(1, s + e)).sub(pt(t, Math.max(0, s - e)));
+        const n = a.cross(b).normalize();
+        if (n.dot(pt(t, s).sub(ORIGIN)) < 0) n.negate();
+        return n;
+      };
+      const layer = (mat, off, t0, t1, s0, s1, n, m) => {
+        const P = [], N = [], UV = [], I = [];
+        for (let i = 0; i <= n; i++) for (let j = 0; j <= m; j++){
+          const t = t0 + (t1 - t0) * i / n, s = s0 + (s1 - s0) * j / m, nn = normal(t, s), p = pt(t, s).addScaledVector(nn, off);
+          P.push(p.x, p.y, p.z); N.push(nn.x, nn.y, nn.z); UV.push(i / n, j / m);
+        }
+        for (let i = 0; i < n; i++) for (let j = 0; j < m; j++){
+          const a = i * (m + 1) + j, b = a + 1, c = a + m + 1, d = c + 1; I.push(a, c, b, b, c, d);
+        }
+        // keep triangle winding in step with the outward normals (mirrored sides flip it)
+        const q = (Math.floor(n / 2) * m + Math.floor(m / 2)) * 6, v = k => new THREE.Vector3(P[3*I[q+k]], P[3*I[q+k]+1], P[3*I[q+k]+2]);
+        const fn = v(1).sub(v(0)).cross(v(2).sub(v(0))), vn = new THREE.Vector3(N[3*I[q]], N[3*I[q]+1], N[3*I[q]+2]);
+        if (fn.dot(vn) < 0) for (let k = 0; k < I.length; k += 3){ const tmp = I[k+1]; I[k+1] = I[k+2]; I[k+2] = tmp; }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+        geo.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3));
+        geo.setAttribute("uv", new THREE.Float32BufferAttribute(UV, 2));
+        geo.setIndex(I);
+        const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = mat.transparent ? 2 : 0; g.add(mesh); return mesh;
+      };
+      return { pt, normal, layer };
+    }
+
+    const lm = o => { const m = new THREE.MeshPhysicalMaterial(Object.assign({ side: THREE.DoubleSide }, o));
+      m.color.convertSRGBToLinear(); if (o.emissive) m.emissive.convertSRGBToLinear(); return m; };
+    const LM = {
+      housing:  lm({ color: 0x0c0e11, metalness: 0.25, roughness: 0.45 }),
+      reflector:lm({ color: 0x4e565e, metalness: 1, roughness: 0.2 }),
+      drl:      lm({ color: 0xffffff, emissive: 0xeef3ff, emissiveIntensity: 1.6, roughness: 0.4 }),
+      amber:    lm({ color: 0x6e3f0c, metalness: 0.4, roughness: 0.3 }),
+      projLens: lm({ color: 0x0e1b28, metalness: 0.1, roughness: 0.02, clearcoat: 1 }),
+      chrome:   lm({ color: 0xe6e9ec, metalness: 1, roughness: 0.1 }),
+      lens:     lm({ color: 0xdfe6ec, metalness: 0, roughness: 0.02, clearcoat: 1, transparent: true, opacity: 0.1, depthWrite: false, envMapIntensity: 1.2 }),
+      tailBase: lm({ color: 0x140304, metalness: 0.2, roughness: 0.4 }),
+      tailInner:lm({ color: 0x3e0509, metalness: 0.6, roughness: 0.25 }),
+      tailLed:  lm({ color: 0xff3030, emissive: 0xff1414, emissiveIntensity: 1.5, roughness: 0.4 }),
+      reverse:  lm({ color: 0x8d949a, metalness: 0.9, roughness: 0.2 }),
+      tailLens: lm({ color: 0x7a0a11, metalness: 0, roughness: 0.03, clearcoat: 1, transparent: true, opacity: 0.55, depthWrite: false, envMapIntensity: 0.7 }),
+      plate:    lm({ color: 0xefefea, roughness: 0.55 })
+    };
+    // honeycomb grille texture
+    const gc = document.createElement("canvas"); gc.width = 512; gc.height = 256;
+    const gx = gc.getContext("2d"); gx.fillStyle = "#08090b"; gx.fillRect(0, 0, 512, 256);
+    gx.strokeStyle = "#2b3036"; gx.lineWidth = 3.5;
+    const hr = 13, hw = Math.sqrt(3) * hr;
+    for (let row = -1; row < 256 / (hr * 1.5) + 1; row++) for (let col = -1; col < 512 / hw + 1; col++){
+      const cx = col * hw + (row % 2 ? hw / 2 : 0), cy = row * hr * 1.5;
+      gx.beginPath();
+      for (let k = 0; k < 6; k++){ const a = Math.PI / 6 + k * Math.PI / 3; gx[k ? "lineTo" : "moveTo"](cx + hr * Math.cos(a), cy + hr * Math.sin(a)); }
+      gx.closePath(); gx.stroke();
+    }
+    const gtex = new THREE.CanvasTexture(gc); gtex.encoding = THREE.sRGBEncoding; gtex.anisotropy = 4;
+    LM.grille = lm({ color: 0xffffff, map: gtex, metalness: 0.5, roughness: 0.35, clearcoat: 0.6 });
+
+    function projector(u, t, s){
+      const p = u.pt(t, s), n = u.normal(t, s), grp = new THREE.Group();
+      grp.add(new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.006, 10, 32), LM.chrome));
+      grp.add(new THREE.Mesh(new THREE.CylinderGeometry(0.031, 0.031, 0.004, 32).rotateX(Math.PI / 2), LM.housing));
+      const dome = new THREE.SphereGeometry(0.022, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.3, 1).rotateX(Math.PI / 2);
+      grp.add(new THREE.Mesh(dome, LM.projLens));
+      grp.position.copy(p).addScaledVector(n, 0.003);
+      grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), n);
+      g.add(grp);
+    }
+
+    for (const s of [1, -1]){
+      // headlamp: tall at the grille end, tapering as it wraps round the corner
+      const HL = unit(1, s, 0.05, 0.98, (t, x) => {
+        const ys = yS(x), top = ys + 0.022 - 0.012 * t, bot = ys - 0.035 - 0.08 * Math.pow(1 - t, 1.3);
+        const mid = (top + bot) / 2, h = (top - bot) / 2 * cap(t, 0.2);
+        return [mid - h, mid + h];
+      });
+      HL.layer(LM.housing,   0.002, 0, 1, 0, 1, 96, 12);
+      HL.layer(LM.reflector, 0.004, 0.07, 0.5, 0.12, 0.7, 40, 8);
+      HL.layer(LM.amber,     0.004, 0.62, 0.95, 0.12, 0.55, 30, 4);
+      HL.layer(LM.drl,       0.006, 0.03, 0.97, 0.78, 0.92, 96, 2);
+      HL.layer(LM.drl,       0.006, 0.025, 0.055, 0.12, 0.92, 4, 8);
+      projector(HL, 0.18, 0.4); projector(HL, 0.34, 0.42);
+      HL.layer(LM.lens,      0.011, 0, 1, 0, 1, 96, 12);
+
+      // tail lamp: wraps from the tailgate round onto the rear wing
+      const TL = unit(-1, s, 0.045, 0.93, (t, x) => {
+        const ys = yS(x), top = ys + 0.065 - 0.03 * t, bot = ys - 0.095 + 0.06 * Math.pow(t, 1.2);
+        const mid = (top + bot) / 2, h = (top - bot) / 2 * cap(t, 0.18);
+        return [mid - h, mid + h];
+      });
+      TL.layer(LM.tailBase,  0.002, 0, 1, 0, 1, 90, 12);
+      TL.layer(LM.tailInner, 0.004, 0.03, 0.97, 0.1, 0.9, 80, 8);
+      TL.layer(LM.reverse,   0.005, 0.14, 0.27, 0.4, 0.6, 16, 4);
+      TL.layer(LM.tailLed,   0.006, 0.03, 0.97, 0.74, 0.86, 90, 2);
+      TL.layer(LM.tailLed,   0.006, 0.03, 0.06, 0.18, 0.86, 4, 8);
+      TL.layer(LM.tailLed,   0.006, 0.05, 0.55, 0.18, 0.28, 50, 2);
+      TL.layer(LM.tailLens,  0.01, 0, 1, 0, 1, 90, 12);
+    }
+    // light bar across the tailgate joining the two tail lamps
+    const BAR = unit(-1, 1, -0.048, 0.048, (t, x) => { const ys = yS(x); return [ys - 0.03, ys - 0.004]; });
+    BAR.layer(LM.tailBase, 0.002, 0, 1, 0, 1, 60, 3);
+    BAR.layer(LM.tailLed,  0.005, 0, 1, 0.38, 0.62, 60, 1);
+    BAR.layer(LM.tailLens, 0.009, 0, 1, 0, 1, 60, 3);
+    // grille between the headlamps
+    const GR = unit(1, 1, -0.048, 0.048, (t, x) => {
+      const lo = yB(x) + 0.1, hi = yS(x) - 0.03, mid = (lo + hi) / 2, h = (hi - lo) / 2 * cap(t, 0.08);
+      return [mid - h, mid + h];
+    });
+    GR.layer(LM.chrome, 0.002, 0, 1, 0, 1, 40, 12);
+    GR.layer(LM.grille, 0.004, 0.015, 0.985, 0.04, 0.96, 40, 12);
+    // rear number plate
+    const PL = unit(-1, 1, -0.0105, 0.0105, (t, x) => { const yb = yB(x); return [yb + 0.17, yb + 0.29]; });
+    PL.layer(LM.housing, 0.002, 0, 1, 0, 1, 20, 4);
+    PL.layer(LM.plate,   0.004, 0.02, 0.98, 0.05, 0.95, 20, 4);
+
+    // windscreen and rear-window wipers
+    const surf = (x, z, lift) => {
+      const e = 0.01, n = new THREE.Vector3(-(topY(x + e, z) - topY(x - e, z)) / (2 * e), 1, -(topY(x, z + e) - topY(x, z - e)) / (2 * e)).normalize();
+      return { p: new THREE.Vector3(x, topY(x, z), z).addScaledVector(n, lift), n };
+    };
+    const bar = (a, b, n, h, w, mat) => {
+      const X = b.clone().sub(a), len = X.length(); X.normalize();
+      const Y = n.clone().addScaledVector(X, -n.dot(X)).normalize(), Z = X.clone().cross(Y);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(len, h, w), mat);
+      m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+      m.position.copy(a).add(b).multiplyScalar(0.5); g.add(m); return m;
+    };
+    const wiperOnCar = (px, pz, ax, az, bx, bz) => {
+      const A = surf(ax, az, 0.032), Bq = surf(bx, bz, 0.032);
+      bar(A.p, Bq.p, A.n, 0.026, 0.034, M.trim);                                       // blade frame / spoiler
+      bar(surf(ax, az, 0.012).p, surf(bx, bz, 0.012).p, A.n, 0.016, 0.012, M.plastic); // rubber
+      const P = surf(px, pz, 0.03), mid = A.p.clone().lerp(Bq.p, 0.42).addScaledVector(A.n, 0.022);
+      bar(P.p, mid, P.n, 0.018, 0.026, M.trim);                                         // arm
+      const capm = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.036, 0.04, 20), M.trim);
+      capm.position.copy(P.p); capm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), P.n); g.add(capm);
+    };
+    wiperOnCar(0.965, 0.30, 0.885, 0.64, 0.855, 0.02);
+    wiperOnCar(0.965, -0.32, 0.915, -0.04, 0.895, -0.56);
+    wiperOnCar(-2.19, 0.0, -2.13, -0.03, -2.13, 0.5);
+
+    // wheels + contact shadows
+    const sc = document.createElement("canvas"); sc.width = sc.height = 128;
+    const sx = sc.getContext("2d"), sgr = sx.createRadialGradient(64, 64, 4, 64, 64, 64);
+    sgr.addColorStop(0, "rgba(10,14,18,.75)"); sgr.addColorStop(1, "rgba(10,14,18,0)");
+    sx.fillStyle = sgr; sx.fillRect(0, 0, 128, 128);
+    const shMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false });
+    for (const ax of ARCH.xs) for (const s of [1, -1]){
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(0.75, 0.45), shMat); p.rotation.x = -Math.PI / 2; p.position.set(ax, 0.006, 0.8 * s); g.add(p);
+    }
+    for (const ax of ARCH.xs) for (const s of [1, -1]){
+      const w = buildWheel(M); w.position.set(ax, 0.36, 0.80 * s); if (s < 0) w.rotation.y = Math.PI; g.add(w);
+    }
+    return g;
+  }
+
+  function buildWheel(M){
+    const w = new THREE.Group();
+    const prof = [[0.245,-0.105],[0.25,-0.116],[0.30,-0.119],[0.34,-0.113],[0.355,-0.10],[0.36,-0.08],[0.36,0.08],[0.355,0.10],[0.34,0.113],[0.30,0.119],[0.25,0.116],[0.245,0.105]]
+      .map(p => new THREE.Vector2(p[0], p[1]));
+    w.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 72).rotateX(Math.PI / 2), M.tyre));
+    const zc = (r, h, mat, z, open) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 48, 1, !!open).rotateX(Math.PI / 2), mat); m.position.z = z; w.add(m); return m; };
+    zc(0.245, 0.2, M.alloy, 0, true).material = M.disc;
+    zc(0.24, 0.01, M.plastic, -0.02);
+    zc(0.17, 0.026, M.disc, 0.02);
+    const cal = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.13, 0.05), M.trim); cal.position.set(-0.13, 0.08, 0.035); cal.rotation.z = -0.55; w.add(cal);
+    const lip = new THREE.Mesh(new THREE.TorusGeometry(0.238, 0.012, 8, 72), M.alloy); lip.position.z = 0.1; w.add(lip);
+    const sh = new THREE.Shape(); sh.moveTo(0.055, -0.017); sh.lineTo(0.236, -0.011); sh.lineTo(0.236, 0.011); sh.lineTo(0.055, 0.017); sh.closePath();
+    const sg = new THREE.ExtrudeGeometry(sh, { depth: 0.026, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.004, bevelSegments: 2 });
+    for (let k = 0; k < 10; k++){
+      const m = new THREE.Mesh(sg, M.alloy); m.rotation.z = Math.floor(k / 2) * Math.PI * 2 / 5 + (k % 2 ? 0.12 : -0.12); m.position.z = 0.062; w.add(m);
+    }
+    zc(0.07, 0.04, M.alloy, 0.085); zc(0.045, 0.012, M.trim, 0.108);
+    return w;
+  }
+
+  // load a licensed .glb in place of the built-in vehicle (see CONFIG.vehicleModel)
+  function loadVehicleModel(){
+    const vm = CONFIG.vehicleModel;
+    if (!vm || !vm.url) return;
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";
+    s.onload = () => new THREE.GLTFLoader().load(vm.url, gltf => {
+      const m = gltf.scene;
+      m.rotation.y = (vm.rotateDeg || 0) * Math.PI / 180;
+      m.updateMatrixWorld(true);
+      let box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+      m.scale.multiplyScalar((vm.lengthMetres || 4.6) / Math.max(size.x, size.z));
+      m.updateMatrixWorld(true);
+      box = new THREE.Box3().setFromObject(m);
+      const c = box.getCenter(new THREE.Vector3());
+      m.position.x -= c.x; m.position.z -= c.z; m.position.y -= box.min.y;
+      while (car.children.length) car.remove(car.children[0]);
+      car.add(m);
+    }, undefined, err => console.warn("Could not load vehicle model", vm.url, err));
+    document.head.appendChild(s);
+  }
+
+  function buildTurntable(){
+    const f = new THREE.Group();
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const ctx = c.getContext("2d");
+    const grd = ctx.createRadialGradient(128,128,10,128,128,128);
+    grd.addColorStop(0, "rgba(24,33,43,.55)"); grd.addColorStop(1, "rgba(24,33,43,0)");
+    ctx.fillStyle = grd; ctx.fillRect(0,0,256,256);
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 2.6),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    shadow.rotation.x = -Math.PI/2; shadow.position.y = 0.003; f.add(shadow);
+    f.userData.shadow = shadow;
+
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0x8C98A4, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(3.0, 3.035, 160), lineMat);
+    ring.rotation.x = -Math.PI/2; ring.position.y = 0.002; f.add(ring);
+    const inner = new THREE.Mesh(new THREE.RingGeometry(2.86, 2.87, 160), lineMat);
+    inner.rotation.x = -Math.PI/2; inner.position.y = 0.002; f.add(inner);
+    return f;
+  }
+
+  /* ---------- exploded-view part models ----------
+     Each model is a list of pieces. A piece has a label (blank = no label), the direction it
+     moves when the part is taken apart, and how far it moves. Sizes are in arbitrary units. */
+  const std = (c, m, r) => { const mt = new THREE.MeshStandardMaterial({ color: c, metalness: m, roughness: r }); mt.color.convertSRGBToLinear(); return mt; };
+  const MAT = {
+    case: std(0x2b3036, .1, .55),  case2: std(0x3a4148, .1, .5),  lead: std(0x7d858d, .6, .45),
+    red: std(0xb3202a, .2, .5),    black: std(0x17191c, 0, .85),   steel: std(0xa7afb7, .85, .3),
+    alu: std(0xc4cad0, .75, .32),  alu2: std(0xa3aab2, .7, .38),   dark: std(0x3d444c, .6, .45),
+    copper: std(0xb8743a, .85, .32), frame: std(0x262a30, .25, .42), friction: std(0x6b5847, 0, .95),
+    accent: std(0x00954C, .1, .5), jug: std(0x2d4f73, .05, .4),   paper: std(0xf1f1ec, 0, .7),
+    filter: std(0x3a4552, .4, .45),
+    lining: std(0x3b3631, 0, .95),  lining2: std(0x4a4038, 0, .95), cast: std(0x5d636a, .6, .5),
+    machined: std(0x9aa1a8, .85, .32), rubber: std(0x222529, 0, .85), spring: std(0x7a1f24, .3, .4),
+    nickel: std(0xc9ccd0, .9, .25), brass: std(0xb08d57, .85, .3), chrome: std(0xe2e5e8, 1, .1)
+  };
+  MAT.castD = MAT.cast.clone(); MAT.castD.side = THREE.DoubleSide;
+  const at = (geo, mat, x=0, y=0, z=0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; };
+  const B  = (w, h, d, mat, x, y, z) => at(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+  const CY = (r, h, mat, x, y, z, seg = 48) => at(new THREE.CylinderGeometry(r, r, h, seg), mat, x, y, z);
+  const CX = (r, len, mat, x, y, z, seg = 48) => at(new THREE.CylinderGeometry(r, r, len, seg).rotateZ(Math.PI/2), mat, x, y, z);
+  const RING = (r, t, mat, x, y, z) => at(new THREE.TorusGeometry(r, t, 12, 48).rotateX(Math.PI/2), mat, x, y, z);
+  const CZ = (r, len, mat, x, y, z, seg = 48) => at(new THREE.CylinderGeometry(r, r, len, seg).rotateX(Math.PI/2), mat, x, y, z);
+  const HEX = (r, h, mat, x, y, z) => at(new THREE.CylinderGeometry(r, r, h, 6), mat, x, y, z);
+  // flat ring facing z (r0 inner, r1 outer, h thick)
+  const ANN = (r0, r1, h, mat, x, y, z) => {
+    const s = new THREE.Shape(); s.absarc(0, 0, r1, 0, Math.PI * 2, false);
+    const hole = new THREE.Path(); hole.absarc(0, 0, r0, 0, Math.PI * 2, true); s.holes.push(hole);
+    const g = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 64 }); g.translate(0, 0, -h / 2);
+    return at(g, mat, x, y, z);
+  };
+  // curved band (part of a ring) facing z, between angles a0 and a1
+  const ARC = (r0, r1, a0, a1, h, mat, x, y, z) => {
+    const s = new THREE.Shape(), n = 32;
+    for (let i = 0; i <= n; i++){ const a = a0 + (a1 - a0) * i / n; s[i ? "lineTo" : "moveTo"](r1 * Math.cos(a), r1 * Math.sin(a)); }
+    for (let i = n; i >= 0; i--){ const a = a0 + (a1 - a0) * i / n; s.lineTo(r0 * Math.cos(a), r0 * Math.sin(a)); }
+    const g = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false }); g.translate(0, 0, -h / 2);
+    return at(g, mat, x, y, z);
+  };
+  // coil spring along an axis
+  const HELIX = (axis, len, r, coils, tube, mat, x, y, z) => {
+    const pts = [];
+    for (let i = 0; i <= coils * 24; i++){ const t = i / (coils * 24), a = t * coils * Math.PI * 2; pts.push(new THREE.Vector3(r * Math.cos(a), -len / 2 + len * t, r * Math.sin(a))); }
+    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), coils * 24, tube, 8);
+    if (axis === "x") g.rotateZ(-Math.PI / 2); else if (axis === "z") g.rotateX(Math.PI / 2);
+    return at(g, mat, x, y, z);
+  };
+  // drum-brake shoe (lining, table and web) on the right (side 1) or left (side -1)
+  const SHOE = (side, R, lining) => {
+    const a0 = side > 0 ? -1.15 : Math.PI - 1.15, a1 = a0 + 2.3;
+    return [ ARC(R * 0.9, R, a0 + 0.08, a1 - 0.08, 0.3, lining || MAT.lining, 0, 0, 0),
+             ARC(R * 0.86, R * 0.9, a0, a1, 0.36, MAT.dark, 0, 0, 0),
+             ARC(R * 0.55, R * 0.86, a0 + 0.05, a1 - 0.05, 0.05, MAT.dark, 0, 0, 0) ];
+  };
+  // off (optional) moves the label from the piece's centre, e.g. to the rim of a disc
+  function piece(label, dir, dist, objs, off){
+    const g = new THREE.Group(); objs.forEach(o => g.add(o));
+    return { label, dir: new THREE.Vector3(...dir).normalize(), dist, obj: g, off: off ? new THREE.Vector3(...off) : null };
+  }
+  function roundRect(p, x, y, w, h, r){
+    p.moveTo(x + r, y); p.lineTo(x + w - r, y); p.quadraticCurveTo(x + w, y, x + w, y + r);
+    p.lineTo(x + w, y + h - r); p.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    p.lineTo(x + r, y + h); p.quadraticCurveTo(x, y + h, x, y + h - r);
+    p.lineTo(x, y + r); p.quadraticCurveTo(x, y, x + r, y);
+    return p;
+  }
+
+  const MODELS = {
+    battery(){
+      const t = 0.06, W = 2.0, H = 1.2, D = 1.1;
+      const tub = [ B(W, t, D, MAT.case, 0, t/2, 0),
+        B(W, H, t, MAT.case, 0, H/2,  D/2 - t/2), B(W, H, t, MAT.case, 0, H/2, -D/2 + t/2),
+        B(t, H, D, MAT.case,  W/2 - t/2, H/2, 0), B(t, H, D, MAT.case, -W/2 + t/2, H/2, 0),
+        B(1.1, 0.2, 0.01, MAT.accent, 0, 0.75, D/2 + 0.006) ];
+      const plates = [];
+      for (let i = 0; i < 6; i++) plates.push(B(0.26, 1.0, 0.92, MAT.lead, -0.78 + i * 0.312, 0.58, 0));
+      const lid = [ B(2.06, 0.16, 1.16, MAT.case2, 0, 1.28, 0) ];
+      const caps = [];
+      for (let i = 0; i < 6; i++) caps.push(CY(0.07, 0.09, MAT.case2, -0.45 + i * 0.18, 1.405, 0, 24));
+      const pos = [ CY(0.1, 0.24, MAT.lead,  0.75, 1.48, 0.3, 32), RING(0.13, 0.03, MAT.red,   0.75, 1.38, 0.3) ];
+      const neg = [ CY(0.1, 0.24, MAT.lead, -0.75, 1.48, 0.3, 32), RING(0.13, 0.03, MAT.black, -0.75, 1.38, 0.3) ];
+      return [ piece("Battery case", [0,1,0], 0, tub), piece("Cell plates", [0,1,0], 1.3, plates),
+               piece("Lid", [0,1,0], 2.3, lid), piece("Vent caps", [0,1,0], 2.8, caps),
+               piece("Terminal posts", [0,1,0], 3.3, pos), piece("", [0,1,0], 3.3, neg) ];
+    },
+
+    wiper(){
+      const s = new THREE.Shape();
+      s.moveTo(-0.09, 0); s.lineTo(0.09, 0); s.lineTo(0.05, 0.17);
+      s.quadraticCurveTo(0, 0.25, -0.05, 0.2); s.lineTo(-0.09, 0.08); s.closePath();
+      const g = new THREE.ExtrudeGeometry(s, { depth: 2.9, bevelEnabled: false });
+      g.translate(0, 0, -1.45); g.rotateY(Math.PI/2);
+      const frame = [ at(g, MAT.frame) ];
+      const steel = [ B(2.86, 0.015, 0.03, MAT.steel, 0, -0.025, 0.045), B(2.86, 0.015, 0.03, MAT.steel, 0, -0.025, -0.045) ];
+      const rubber = [ B(2.96, 0.07, 0.05, MAT.black, 0, -0.07, 0), B(2.96, 0.05, 0.02, MAT.black, 0, -0.13, 0) ];
+      const adapter = [ B(0.36, 0.12, 0.16, MAT.alu, 0, 0.28, 0), B(0.06, 0.06, 0.24, MAT.steel, 0, 0.3, 0) ];
+      const capR = [ B(0.14, 0.2, 0.18, MAT.case2,  1.52, 0.09, 0) ];
+      const capL = [ B(0.14, 0.2, 0.18, MAT.case2, -1.52, 0.09, 0) ];
+      return [ piece("Blade frame", [0,1,0], 0, frame), piece("Spring steel strips", [0,-1,0], 0.4, steel),
+               piece("Rubber blade", [0,-1,0], 0.85, rubber), piece("Arm adapter", [0,1,0], 0.6, adapter),
+               piece("End caps", [1,0,0], 0.5, capR), piece("", [-1,0,0], 0.5, capL) ];
+    },
+
+    compressor(){
+      const body = [ CX(0.55, 1.3, MAT.alu, 0, 0, 0),
+        CX(0.58, 0.05, MAT.alu2, -0.4, 0, 0), CX(0.58, 0.05, MAT.alu2, 0, 0, 0), CX(0.58, 0.05, MAT.alu2, 0.4, 0, 0),
+        B(0.28, 0.22, 0.3, MAT.alu2, 0.3, 0.6, 0), B(0.28, 0.22, 0.3, MAT.alu2, -0.3, -0.6, 0) ];
+      const rear = [ CX(0.57, 0.22, MAT.alu2, -0.76, 0, 0) ];
+      const ports = [ B(0.18, 0.1, 0.6, MAT.alu2, -0.76, 0.57, 0),
+        CY(0.07, 0.22, MAT.steel, -0.76, 0.68, 0.2, 24), CY(0.07, 0.22, MAT.steel, -0.76, 0.68, -0.2, 24) ];
+      const coil = [ CX(0.45, 0.16, MAT.copper, 0.73, 0, 0) ];
+      const pulley = [ CX(0.62, 0.3, MAT.dark, 0.88, 0, 0) ];
+      for (let k = 0; k < 5; k++) pulley.push(CX(0.635, 0.025, MAT.steel, 0.77 + k * 0.055, 0, 0));
+      const hub = [ CX(0.5, 0.06, MAT.steel, 1.06, 0, 0), CX(0.13, 0.16, MAT.dark, 1.12, 0, 0) ];
+      return [ piece("Compressor body", [0,1,0], 0, body), piece("Rear head", [-1,0,0], 0.6, rear),
+               piece("Pipe ports", [-0.5,1,0], 1.0, ports), piece("Clutch coil", [1,0,0], 0.55, coil),
+               piece("Pulley", [1,0,0], 1.1, pulley), piece("Clutch hub", [1,0,0], 1.75, hub) ];
+    },
+
+    oil(){
+      const s = roundRect(new THREE.Shape(), -0.55, 0, 1.1, 1.6, 0.14);
+      s.holes.push(roundRect(new THREE.Path(), 0.12, 1.05, 0.3, 0.36, 0.1));
+      const g = new THREE.ExtrudeGeometry(s, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.06,
+        bevelSize: 0.05, bevelSegments: 4, curveSegments: 12 });
+      g.translate(0, 0, -0.25);
+      const jug = [ at(g, MAT.jug), CY(0.17, 0.2, MAT.jug, -0.27, 1.68, 0, 32),
+        B(0.62, 0.6, 0.01, MAT.paper, -0.08, 0.55, 0.32), B(0.62, 0.1, 0.012, MAT.accent, -0.08, 0.72, 0.322) ];
+      const seal = [ CY(0.17, 0.015, MAT.steel, -0.27, 1.79, 0, 32) ];
+      const cap = [ CY(0.2, 0.2, MAT.black, -0.27, 1.89, 0, 32) ];
+      const filter = [ CY(0.38, 0.85, MAT.filter, 1.25, 0.425, 0), CY(0.385, 0.14, MAT.paper, 1.25, 0.45, 0),
+        CY(0.36, 0.05, MAT.steel, 1.25, 0.875, 0) ];
+      const gasket = [ RING(0.27, 0.035, MAT.black, 1.25, 0.92, 0) ];
+      return [ piece("Oil container", [0,1,0], 0, jug), piece("Foil seal", [0,1,0], 0.45, seal),
+               piece("Cap", [0,1,0], 0.9, cap), piece("Oil filter", [0,1,0], 0, filter),
+               piece("Filter gasket", [0,1,0], 0.55, gasket) ];
+    },
+
+    clutch(){
+      const cone = new THREE.CylinderGeometry(0.3, 0.85, 0.18, 64).rotateZ(-Math.PI/2);
+      const cover = [ CX(1.0, 0.28, MAT.dark, 0, 0, 0, 64), CX(1.1, 0.05, MAT.dark, -0.13, 0, 0, 64),
+        at(cone, MAT.steel, 0.23, 0, 0), CX(0.3, 0.04, MAT.alu2, 0.33, 0, 0) ];
+      for (let i = 0; i < 6; i++){
+        const a = i / 6 * Math.PI * 2;
+        cover.push(CX(0.04, 0.09, MAT.steel, -0.1, Math.cos(a) * 1.04, Math.sin(a) * 1.04, 12));
+      }
+      const disc = [ CX(0.95, 0.06, MAT.friction, -0.3, 0, 0, 64), CX(0.72, 0.07, MAT.steel, -0.3, 0, 0, 64),
+        CX(0.2, 0.24, MAT.dark, -0.3, 0, 0, 32) ];
+      for (let i = 0; i < 6; i++){
+        const a = i / 6 * Math.PI * 2 + 0.5;
+        disc.push(CX(0.07, 0.12, MAT.alu, -0.3, Math.cos(a) * 0.45, Math.sin(a) * 0.45, 16));
+      }
+      const bearing = [ CX(0.3, 0.22, MAT.steel, 0.48, 0, 0), CX(0.22, 0.24, MAT.dark, 0.48, 0, 0) ];
+      const tool = [ CX(0.07, 1.0, MAT.accent, -0.3, 0, 0, 24), CX(0.16, 0.12, MAT.accent, -0.75, 0, 0, 24) ];
+      return [ piece("Pressure plate", [1,0,0], 0, cover), piece("Clutch disc", [-1,0,0], 1.2, disc),
+               piece("Release bearing", [1,0,0], 1.1, bearing), piece("Alignment tool", [-1,0,0], 2.7, tool) ];
+    }    ,
+
+    brakePads(){
+      const A0 = Math.PI/2 - 0.55, A1 = Math.PI/2 + 0.55, OY = -0.82;
+      const pad = zs => [
+        ARC(0.62, 1.0, A0, A1, 0.13, MAT.lining, 0, OY, zs * 0.085),
+        ARC(0.57, 1.05, A0 - 0.07, A1 + 0.07, 0.05, MAT.dark, 0, OY, zs * 0.175),
+        B(0.14, 0.12, 0.05, MAT.dark, 0.66, -0.1, zs * 0.175), B(0.14, 0.12, 0.05, MAT.dark, -0.66, -0.1, zs * 0.175)
+      ];
+      const shim = zs => [ ARC(0.6, 1.02, A0 - 0.03, A1 + 0.03, 0.015, MAT.alu, 0, OY, zs * 0.209) ];
+      const wear = [ B(0.05, 0.24, 0.03, MAT.steel, 0.42, 0.1, -0.22), B(0.05, 0.03, 0.1, MAT.steel, 0.42, -0.02, -0.18) ];
+      const clip = [ B(0.5, 0.03, 0.46, MAT.steel, 0, 0.24, 0), B(0.5, 0.1, 0.03, MAT.steel, 0, 0.2, 0.23), B(0.5, 0.1, 0.03, MAT.steel, 0, 0.2, -0.23) ];
+      return [ piece("Outer pad", [0,0,1], 0.45, pad(1)), piece("Inner pad", [0,0,-1], 0.45, pad(-1)),
+               piece("Shims", [0,0,1], 0.9, shim(1)), piece("", [0,0,-1], 0.9, shim(-1)),
+               piece("Wear indicator", [0.4,0.4,-1], 1.0, wear), piece("Anti-rattle clip", [0,1,0], 0.6, clip) ];
+    },
+
+    brakeDisc(){
+      const vanes = [];
+      for (let i = 0; i < 30; i++){
+        const a = i / 30 * Math.PI * 2, m = B(0.5, 0.03, 0.09, MAT.cast, 0.72 * Math.cos(a), 0.72 * Math.sin(a), 0);
+        m.rotation.z = a; vanes.push(m);
+      }
+      const hat = [ CZ(0.48, 0.32, MAT.cast, 0, 0, 0.27), CZ(0.17, 0.34, MAT.black, 0, 0, 0.27) ];
+      for (let i = 0; i < 5; i++){ const a = i / 5 * Math.PI * 2; hat.push(CZ(0.05, 0.34, MAT.black, 0.31 * Math.cos(a), 0.31 * Math.sin(a), 0.27, 16)); }
+      const a = Math.PI / 5;
+      return [ piece("Cooling vanes", [0,0,1], 0, vanes, [0, 0.45, 0]),
+               piece("Inner friction ring", [0,0,-1], 0.5, [ ANN(0.45, 1.0, 0.07, MAT.machined, 0, 0, -0.08) ], [0, 0.95, 0]),
+               piece("Outer friction ring", [0,0,1], 0.5, [ ANN(0.45, 1.0, 0.07, MAT.machined, 0, 0, 0.08) ], [0, -0.9, 0]),
+               piece("Hat (hub mount)", [0,0,1], 1.0, hat, [0, -0.3, 0]),
+               piece("Retaining screw", [0,0,1], 1.5, [ CZ(0.035, 0.14, MAT.steel, 0.31 * Math.cos(a), 0.31 * Math.sin(a), 0.33, 16), CZ(0.06, 0.03, MAT.steel, 0.31 * Math.cos(a), 0.31 * Math.sin(a), 0.41, 16) ]) ];
+    },
+
+    brakeShoes(){
+      const springs = [ HELIX("x", 0.7, 0.045, 10, 0.014, MAT.steel, 0, 0.72, 0), HELIX("x", 0.7, 0.045, 10, 0.014, MAT.steel, 0, -0.72, 0) ];
+      const adj = [ CX(0.035, 0.8, MAT.brass, 0, -0.52, 0), CX(0.08, 0.05, MAT.brass, 0.12, -0.52, 0, 12) ];
+      const pins = [ CZ(0.02, 0.5, MAT.steel, 0.62, 0, 0, 12), CZ(0.06, 0.04, MAT.steel, 0.62, 0, 0.22), CZ(0.02, 0.5, MAT.steel, -0.62, 0, 0, 12), CZ(0.06, 0.04, MAT.steel, -0.62, 0, 0.22) ];
+      return [ piece("Brake shoes", [1,0,0], 0.55, SHOE(1, 1)), piece("", [-1,0,0], 0.55, SHOE(-1, 1)),
+               piece("Return springs", [0,0,1], 0.8, springs), piece("Adjuster", [0,-0.6,1], 0.9, adj),
+               piece("Hold-down pins", [0,0,-1], 0.8, pins) ];
+    },
+
+    parkingShoes(){
+      const lever = [ B(0.08, 1.0, 0.04, MAT.steel, 0.3, -0.05, 0.12), CZ(0.04, 0.08, MAT.steel, 0.3, 0.42, 0.12, 12) ];
+      const cable = [ at(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0.3, -0.55, 0.14), new THREE.Vector3(0.45, -0.95, 0.2), new THREE.Vector3(0.9, -1.25, 0.25), new THREE.Vector3(1.5, -1.35, 0.3)]), 40, 0.025, 8), MAT.black),
+                      CY(0.045, 0.1, MAT.steel, 0.3, -0.55, 0.14, 16) ];
+      const strut = [ B(0.95, 0.06, 0.04, MAT.steel, 0, 0.3, 0.06) ];
+      const spring = [ HELIX("x", 0.55, 0.04, 9, 0.012, MAT.steel, 0, 0.62, 0) ];
+      return [ piece("Parking brake shoes", [1,0,0], 0.5, SHOE(1, 0.8, MAT.lining2)), piece("", [-1,0,0], 0.5, SHOE(-1, 0.8, MAT.lining2)),
+               piece("Actuating lever", [0,0,1], 0.7, lever), piece("Parking cable", [0.3,-0.5,1], 1.0, cable),
+               piece("Strut bar", [0,0.6,1], 0.8, strut), piece("Return spring", [0,1,0], 0.55, spring) ];
+    },
+
+    brakeDrum(){
+      const shell = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.7, 64, 1, true).rotateX(Math.PI / 2), MAT.castD);
+      shell.position.z = -0.2;
+      const drum = [ shell, ANN(0.3, 1.02, 0.06, MAT.cast, 0, 0, 0.17), CZ(0.32, 0.12, MAT.cast, 0, 0, 0.22), CZ(0.12, 0.14, MAT.black, 0, 0, 0.22) ];
+      for (const z of [-0.45, -0.3, -0.15, 0]) drum.push(at(new THREE.TorusGeometry(1.0, 0.02, 8, 64), MAT.cast, 0, 0, z));
+      for (let i = 0; i < 5; i++){ const a = i / 5 * Math.PI * 2; drum.push(CZ(0.04, 0.14, MAT.black, 0.22 * Math.cos(a), 0.22 * Math.sin(a), 0.22, 12)); }
+      const shoes = [ ...SHOE(1, 0.93), ...SHOE(-1, 0.93), HELIX("x", 0.6, 0.04, 9, 0.012, MAT.steel, 0, 0.66, 0) ];
+      shoes.forEach(o => o.position.z -= 0.25);
+      return [ piece("Backing plate", [0,0,1], 0, [ CZ(1.08, 0.04, MAT.dark, 0, 0, -0.45), CZ(0.2, 0.08, MAT.dark, 0, 0, -0.45) ]),
+               piece("Wheel cylinder", [0,0,1], 0.55, [ CX(0.09, 0.45, MAT.alu2, 0, 0.8, -0.3), CY(0.02, 0.12, MAT.brass, 0.1, 0.88, -0.3, 10) ]),
+               piece("Brake shoes", [0,0,1], 1.15, shoes),
+               piece("Brake drum", [0,0,1], 2.2, drum) ];
+    },
+
+    shock(){
+      const body = [ CY(0.15, 1.5, MAT.dark, 0, 0.75, 0), CY(0.34, 0.04, MAT.steel, 0, 1.05, 0), at(new THREE.TorusGeometry(0.12, 0.04, 10, 24), MAT.dark, 0, -0.1, 0) ];
+      const boot = [];
+      for (let k = 0; k < 8; k++) boot.push(RING(0.1, 0.028, MAT.rubber, 0, 1.6 + k * 0.09, 0));
+      const mount = [ CY(0.26, 0.12, MAT.rubber, 0, 2.68, 0), CY(0.12, 0.06, MAT.steel, 0, 2.77, 0) ];
+      for (let i = 0; i < 3; i++){ const a = i / 3 * Math.PI * 2; mount.push(CY(0.02, 0.18, MAT.steel, 0.17 * Math.cos(a), 2.82, 0.17 * Math.sin(a), 10)); }
+      return [ piece("Damper body", [0,1,0], 0, body),
+               piece("Piston rod", [0,1,0], 0.35, [ CY(0.045, 1.0, MAT.chrome, 0, 1.95, 0) ]),
+               piece("Coil spring", [-1,0,0], 0.9, [ HELIX("y", 1.4, 0.3, 6, 0.04, MAT.spring, 0, 1.8, 0) ]),
+               piece("Dust boot", [1,0,0], 0.75, boot),
+               piece("Bump stop", [0,1,0], 0.75, [ CY(0.085, 0.2, MAT.rubber, 0, 2.4, 0) ]),
+               piece("Upper spring seat", [0,1,0], 1.05, [ CY(0.34, 0.04, MAT.steel, 0, 2.55, 0) ]),
+               piece("Top mount", [0,1,0], 1.4, mount) ];
+    },
+
+    thermostat(){
+      const base = [ CY(0.36, 0.32, MAT.alu2, 0, -0.2, 0), CX(0.13, 0.5, MAT.alu2, 0.45, -0.25, 0), RING(0.13, 0.02, MAT.alu2, 0.66, -0.25, 0).rotateZ(Math.PI / 2) ];
+      const valve = [ CY(0.3, 0.025, MAT.brass, 0, 0, 0), CY(0.2, 0.02, MAT.brass, 0, 0.03, 0), CY(0.08, 0.28, MAT.copper, 0, -0.13, 0),
+                      B(0.04, 0.3, 0.04, MAT.brass, 0.19, -0.15, 0), B(0.04, 0.3, 0.04, MAT.brass, -0.19, -0.15, 0), B(0.42, 0.04, 0.04, MAT.brass, 0, -0.3, 0),
+                      HELIX("y", 0.26, 0.15, 4, 0.014, MAT.steel, 0, -0.15, 0) ];
+      const cover = [ CY(0.36, 0.2, MAT.alu2, 0, 0.17, 0), CY(0.13, 0.4, MAT.alu2, 0, 0.45, 0), RING(0.135, 0.02, MAT.alu2, 0, 0.6, 0),
+                      B(0.95, 0.05, 0.2, MAT.alu2, 0, 0.09, 0), CY(0.035, 0.07, MAT.steel, 0.42, 0.13, 0, 12), CY(0.035, 0.07, MAT.steel, -0.42, 0.13, 0, 12) ];
+      return [ piece("Housing", [0,1,0], 0, base), piece("Thermostat valve", [0,1,0], 0.55, valve),
+               piece("Gasket", [0,1,0], 0.95, [ RING(0.3, 0.025, MAT.rubber, 0, 0.05, 0) ]), piece("Housing cover", [0,1,0], 1.4, cover) ];
+    },
+
+    glowPlug(){
+      const body = [ CY(0.03, 0.2, MAT.steel, 0, 1.55, 0), HEX(0.13, 0.16, MAT.nickel, 0, 1.38, 0), CY(0.075, 0.55, MAT.nickel, 0, 1.03, 0),
+                     at(new THREE.CylinderGeometry(0.075, 0.05, 0.1, 32), MAT.nickel, 0, 0.7, 0) ];
+      for (let k = 0; k < 6; k++) body.push(RING(0.078, 0.01, MAT.nickel, 0, 1.24 - k * 0.035, 0));
+      return [ piece("Plug body", [0,1,0], 0, body),
+               piece("Terminal nut", [0,1,0], 0.45, [ HEX(0.07, 0.07, MAT.steel, 0, 1.64, 0) ]),
+               piece("Insulating washer", [0,1,0], 0.25, [ CY(0.06, 0.05, MAT.paper, 0, 1.5, 0) ]),
+               piece("Heater element", [0,-1,0], 0.5, [ CY(0.035, 0.6, MAT.dark, 0, 0.35, 0), at(new THREE.SphereGeometry(0.035, 16, 10), MAT.dark, 0, 0.05, 0) ]) ];
+    },
+
+    ignitionCoil(){
+      const head = [ B(0.42, 0.28, 0.32, MAT.case, 0, 2.15, 0), B(0.16, 0.14, 0.2, MAT.case2, 0.28, 2.18, 0), B(0.2, 0.05, 0.22, MAT.case, -0.3, 2.25, 0), CY(0.04, 0.06, MAT.steel, -0.33, 2.25, 0, 12) ];
+      const body = [ CY(0.12, 1.3, MAT.case, 0, 1.35, 0) ];
+      for (const y of [0.9, 1.4, 1.9]) body.push(RING(0.122, 0.01, MAT.case2, 0, y, 0));
+      return [ piece("Coil body", [0,1,0], 0, body), piece("Connector head", [0,1,0], 0.55, head),
+               piece("Spring contact", [0,-1,0], 0.35, [ HELIX("y", 0.2, 0.035, 6, 0.008, MAT.steel, 0, 0.6, 0) ]),
+               piece("Rubber boot", [0,-1,0], 0.85, [ at(new THREE.CylinderGeometry(0.135, 0.11, 0.5, 40), MAT.rubber, 0, 0.45, 0) ]) ];
+    },
+
+    sparkPlug(){
+      const ins = [ CY(0.1, 0.55, MAT.paper, 0, 1.98, 0) ];
+      for (let k = 0; k < 4; k++) ins.push(RING(0.1, 0.02, MAT.paper, 0, 1.92 + k * 0.08, 0));
+      const thread = [ CY(0.11, 0.5, MAT.nickel, 0, 1.15, 0) ];
+      for (let k = 0; k < 9; k++) thread.push(RING(0.112, 0.012, MAT.nickel, 0, 0.95 + k * 0.05, 0));
+      return [ piece("Hex shell", [0,1,0], 0, [ HEX(0.18, 0.22, MAT.nickel, 0, 1.55, 0), CY(0.13, 0.1, MAT.nickel, 0, 1.7, 0) ]),
+               piece("Terminal", [0,1,0], 0.6, [ CY(0.045, 0.14, MAT.steel, 0, 2.32, 0), CY(0.06, 0.04, MAT.steel, 0, 2.38, 0) ]),
+               piece("Ceramic insulator", [0,1,0], 0.3, ins),
+               piece("Sealing washer", [1,0,0], 0.55, [ RING(0.15, 0.025, MAT.steel, 0, 1.42, 0) ]),
+               piece("Threaded body", [0,-1,0], 0.45, thread),
+               piece("Electrodes", [0,-1,0], 0.9, [ CY(0.018, 0.12, MAT.copper, 0, 0.86, 0), B(0.03, 0.12, 0.04, MAT.nickel, 0.08, 0.86, 0), B(0.1, 0.03, 0.04, MAT.nickel, 0.035, 0.8, 0) ]) ];
+    },
+
+    windowRegulator(){
+      const rail = [ B(0.1, 2.4, 0.05, MAT.steel, 0, 0, 0), B(0.03, 2.4, 0.1, MAT.steel, -0.05, 0, 0.03),
+                     CZ(0.08, 0.06, MAT.alu2, 0.04, 1.18, 0.06), CZ(0.08, 0.06, MAT.alu2, 0.04, -1.18, 0.06) ];
+      const tube = pts => at(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), 60, 0.012, 6), MAT.black);
+      const cable = [ tube([[0.1, 1.2, 0.09], [0.1, 0, 0.09], [0.1, -1.2, 0.09]]),
+                      tube([[0.1, 1.24, 0.09], [0.3, 0.6, 0.11], [0.5, -0.82, 0.14]]), tube([[0.1, -1.24, 0.09], [0.35, -1.12, 0.12], [0.5, -1.08, 0.14]]) ];
+      const carrier = [ B(0.42, 0.2, 0.08, MAT.case2, 0.05, 0.35, 0.1), B(0.3, 0.06, 0.14, MAT.case2, 0.05, 0.47, 0.1) ];
+      const motor = [ CZ(0.22, 0.14, MAT.case2, 0.5, -0.95, 0.15), CX(0.1, 0.45, MAT.steel, 0.85, -0.95, 0.15), B(0.12, 0.1, 0.08, MAT.case, 1.12, -0.95, 0.15) ];
+      return [ piece("Guide rail", [0,1,0], 0, rail, [0, 0.8, 0]), piece("Cable", [-1,0,0], 0.5, cable, [0, -0.45, 0]),
+               piece("Glass carrier", [0,0,1], 0.6, carrier), piece("Motor & gearbox", [1,0,0.4], 0.7, motor) ];
+    },
+
+    alternator(){
+      const rotor = [ CX(0.36, 0.46, MAT.dark, 0, 0, 0), CX(0.05, 2.2, MAT.steel, 0.2, 0, 0),
+                      CX(0.1, 0.06, MAT.copper, -0.34, 0, 0), CX(0.1, 0.06, MAT.copper, -0.44, 0, 0) ];
+      for (let i = 0; i < 6; i++){ const a = i / 6 * Math.PI * 2, m = B(0.44, 0.05, 0.16, MAT.steel, 0, 0.375 * Math.cos(a), 0.375 * Math.sin(a)); m.rotation.x = a + Math.PI / 2; rotor.push(m); }
+      const statorCore = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.66, 0.3, 64, 1, true).rotateZ(Math.PI / 2), MAT.castD);
+      const stator = [ statorCore, at(new THREE.TorusGeometry(0.5, 0.075, 10, 48).rotateY(Math.PI / 2), MAT.copper, 0.2, 0, 0),
+                       at(new THREE.TorusGeometry(0.5, 0.075, 10, 48).rotateY(Math.PI / 2), MAT.copper, -0.2, 0, 0) ];
+      const front = [ CX(0.7, 0.2, MAT.alu, 0.42, 0, 0), CX(0.24, 0.12, MAT.alu2, 0.56, 0, 0), B(0.18, 0.34, 0.24, MAT.alu, 0.42, 0.82, 0), B(0.18, 0.34, 0.24, MAT.alu, 0.42, -0.82, 0) ];
+      for (let i = 0; i < 8; i++){ const a = i / 8 * Math.PI * 2 + 0.2, m = B(0.21, 0.09, 0.2, MAT.dark, 0.43, 0.48 * Math.cos(a), 0.48 * Math.sin(a)); m.rotation.x = a; front.push(m); }
+      const rear = [ CX(0.7, 0.24, MAT.alu2, -0.44, 0, 0), B(0.18, 0.34, 0.24, MAT.alu2, -0.44, -0.82, 0.2) ];
+      const reg = [ CX(0.6, 0.16, MAT.black, -0.72, 0, 0), B(0.14, 0.26, 0.4, MAT.case2, -0.84, 0.25, 0), CY(0.05, 0.16, MAT.brass, -0.84, 0.46, 0.12, 16) ];
+      const pulley = [ CX(0.27, 0.3, MAT.dark, 0.88, 0, 0), CX(0.09, 0.08, MAT.steel, 1.07, 0, 0, 6) ];
+      for (let k = 0; k < 6; k++) pulley.push(CX(0.28, 0.022, MAT.steel, 0.76 + k * 0.048, 0, 0));
+      return [ piece("Stator", [0,1,0], 0, stator, [0, 0.62, 0]), piece("Rotor", [1,0,0], 0.9, rotor, [0, 0.35, 0]),
+               piece("Drive-end housing", [1,0,0], 1.55, front, [0, -0.7, 0]), piece("Pulley", [1,0,0], 2.2, pulley, [0, 0.27, 0]),
+               piece("Slip-ring-end housing", [-1,0,0], 0.75, rear, [0, 0.65, 0]), piece("Regulator & rectifier", [-1,0,0], 1.4, reg, [0, -0.5, 0]) ];
+    },
+
+    starter(){
+      const yokeShell = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.1, 64, 1, true).rotateZ(Math.PI / 2), MAT.castD);
+      yokeShell.position.x = -0.25;
+      const yoke = [ yokeShell, at(new THREE.TorusGeometry(0.42, 0.02, 8, 48).rotateY(Math.PI / 2), MAT.dark, 0.3, 0, 0),
+                     at(new THREE.TorusGeometry(0.42, 0.02, 8, 48).rotateY(Math.PI / 2), MAT.dark, -0.8, 0, 0) ];
+      const arm = [ CX(0.3, 0.8, MAT.lead, -0.25, 0, 0), CX(0.2, 0.22, MAT.copper, -0.78, 0, 0), CX(0.04, 1.9, MAT.steel, 0.05, 0, 0) ];
+      for (let i = 0; i < 12; i++){ const a = i / 12 * Math.PI * 2, m = B(0.8, 0.03, 0.05, MAT.copper, -0.25, 0.3 * Math.cos(a), 0.3 * Math.sin(a)); m.rotation.x = a; arm.push(m); }
+      const endCap = [ CX(0.42, 0.12, MAT.alu2, -0.88, 0, 0), CX(0.12, 0.1, MAT.alu2, -0.98, 0, 0), B(0.06, 0.14, 0.1, MAT.dark, -0.85, 0.24, 0), B(0.06, 0.14, 0.1, MAT.dark, -0.85, -0.24, 0) ];
+      const drive = [ CX(0.38, 0.45, MAT.alu, 0.55, 0, 0), B(0.1, 1.05, 0.72, MAT.alu, 0.36, 0, 0), CX(0.2, 0.32, MAT.alu, 0.92, 0, 0),
+                      CY(0.06, 0.12, MAT.steel, 0.36, 0.42, 0.26, 12) ];
+      const pinion = [ CX(0.13, 0.22, MAT.steel, 1.2, 0, 0), CX(0.09, 0.3, MAT.dark, 1.02, 0, 0) ];
+      for (let i = 0; i < 10; i++){ const a = i / 10 * Math.PI * 2, m = B(0.22, 0.05, 0.05, MAT.steel, 1.2, 0.15 * Math.cos(a), 0.15 * Math.sin(a)); m.rotation.x = a; pinion.push(m); }
+      const sol = [ CX(0.22, 0.85, MAT.nickel, 0.2, 0.62, 0), CX(0.23, 0.04, MAT.steel, 0.6, 0.62, 0),
+                    CY(0.045, 0.16, MAT.brass, -0.18, 0.9, 0.1, 16), CY(0.045, 0.16, MAT.brass, -0.18, 0.9, -0.1, 16), CY(0.03, 0.12, MAT.brass, 0.02, 0.88, 0, 12) ];
+      return [ piece("Motor yoke", [0,1,0], 0, yoke, [0, -0.42, 0]), piece("Armature", [-1,0,0], 0.95, arm, [0, 0.32, 0]),
+               piece("End cap & brushes", [-1,0,0], 1.75, endCap, [0, -0.42, 0]), piece("Drive-end housing", [1,0,0], 0.8, drive, [0, -0.55, 0]),
+               piece("Pinion drive", [1,0,0], 1.5, pinion, [0, 0.2, 0]), piece("Solenoid", [0,1,0], 0.85, sol) ];
+    },
+
+    waterPump(){
+      const body = [ CZ(0.55, 0.26, MAT.alu, 0, 0, 0), CZ(0.2, 0.36, MAT.alu2, 0, 0, 0.3), CX(0.13, 0.5, MAT.alu, 0.7, -0.22, 0.02) ];
+      for (let i = 0; i < 3; i++){ const a = i / 3 * Math.PI * 2 + 0.5; body.push(CZ(0.11, 0.26, MAT.alu, 0.66 * Math.cos(a), 0.66 * Math.sin(a), 0, 24)); }
+      const imp = [ CZ(0.34, 0.04, MAT.steel, 0, 0, -0.2) ];
+      for (let i = 0; i < 8; i++){ const a = i / 8 * Math.PI * 2, m = B(0.28, 0.035, 0.12, MAT.steel, 0.17 * Math.cos(a), 0.17 * Math.sin(a), -0.27); m.rotation.z = a; imp.push(m); }
+      const gasket = [ ANN(0.42, 0.6, 0.02, MAT.rubber, 0, 0, -0.14) ];
+      const seal = [ ANN(0.06, 0.14, 0.06, MAT.rubber, 0, 0, -0.17) ];
+      const shaft = [ CZ(0.05, 1.15, MAT.steel, 0, 0, 0.25), CZ(0.14, 0.3, MAT.dark, 0, 0, 0.36) ];
+      const hub = [ CZ(0.5, 0.18, MAT.dark, 0, 0, 0.82), CZ(0.16, 0.22, MAT.steel, 0, 0, 0.82) ];
+      for (let k = 0; k < 5; k++) hub.push(CZ(0.505, 0.02, MAT.steel, 0, 0, 0.75 + k * 0.035));
+      for (let i = 0; i < 4; i++){ const a = i / 4 * Math.PI * 2; hub.push(CZ(0.04, 0.2, MAT.black, 0.3 * Math.cos(a), 0.3 * Math.sin(a), 0.84, 12)); }
+      return [ piece("Pump body", [0,1,0], 0, body, [0, 0.55, 0]), piece("Gasket", [0,0,-1], 0.35, gasket, [0, -0.5, 0]),
+               piece("Shaft seal", [0,0,-1], 0.65, seal), piece("Impeller", [0,0,-1], 1.0, imp, [0, -0.3, 0]),
+               piece("Shaft & bearing", [0,0,1], 0.55, shaft), piece("Pulley hub", [0,0,1], 1.15, hub, [0, 0.45, 0]) ];
+    },
+
+    filters(){
+      const can = [ CY(0.38, 0.85, MAT.filter, 1.35, 0.5, 0), B(0.5, 0.4, 0.01, MAT.paper, 1.35, 0.5, 0.375), B(0.5, 0.08, 0.012, MAT.accent, 1.35, 0.6, 0.377) ];
+      const elem = [ CY(0.3, 0.74, MAT.paper, 1.35, 0.5, 0), CY(0.31, 0.035, MAT.steel, 1.35, 0.88, 0), CY(0.31, 0.035, MAT.steel, 1.35, 0.12, 0) ];
+      for (let i = 0; i < 24; i++){ const a = i / 24 * Math.PI * 2; elem.push(B(0.03, 0.7, 0.03, MAT.lining2, 1.35 + 0.3 * Math.cos(a), 0.5, 0.3 * Math.sin(a))); }
+      const base = [ CY(0.37, 0.05, MAT.steel, 1.35, 0.05, 0), CY(0.1, 0.1, MAT.steel, 1.35, 0.0, 0) ];
+      const seal = [ RING(0.27, 0.035, MAT.rubber, 1.35, -0.02, 0) ];
+      const air = [ B(1.5, 0.2, 0.06, MAT.rubber, -0.35, 0.1, 0.47), B(1.5, 0.2, 0.06, MAT.rubber, -0.35, 0.1, -0.47), B(0.06, 0.2, 1.0, MAT.rubber, 0.42, 0.1, 0), B(0.06, 0.2, 1.0, MAT.rubber, -1.12, 0.1, 0) ];
+      for (let i = 0; i < 22; i++) air.push(B(0.035, 0.17, 0.88, i % 2 ? MAT.paper : MAT.lining2, -1.07 + i * 0.07, 0.1, 0));
+      const cabin = [ B(1.0, 0.12, 0.04, MAT.case2, -0.35, 0.06, -1.22), B(1.0, 0.12, 0.04, MAT.case2, -0.35, 0.06, -1.78), B(0.04, 0.12, 0.6, MAT.case2, 0.13, 0.06, -1.5), B(0.04, 0.12, 0.6, MAT.case2, -0.83, 0.06, -1.5) ];
+      for (let i = 0; i < 14; i++) cabin.push(B(0.032, 0.1, 0.54, i % 2 ? MAT.dark : MAT.case, -0.79 + i * 0.066, 0.06, -1.5));
+      const fuel = [ CX(0.16, 0.62, MAT.alu, -0.35, 0.18, 1.25), CX(0.05, 0.22, MAT.steel, 0.07, 0.18, 1.25, 16), CX(0.05, 0.22, MAT.steel, -0.77, 0.18, 1.25, 16), B(0.3, 0.1, 0.01, MAT.accent, -0.35, 0.18, 1.41) ];
+      return [ piece("Oil filter", [0,1,0], 0, can, [0.3, 0.2, 0]), piece("Filter element", [0,1,0], 1.05, elem, [0, 0.3, 0]),
+               piece("Base plate", [0,-1,0], 0.45, base), piece("Sealing gasket", [0,-1,0], 0.8, seal),
+               piece("Air filter", [-1,0,0], 0.35, air, [0, 0.1, 0]), piece("Cabin filter", [0,0,-1], 0.45, cabin), piece("Fuel filter", [0,0,1], 0.45, fuel) ];
+    },
+
+    bulb(){
+      const glass = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0.04, clearcoat: 1, transparent: true, opacity: 0.28, depthWrite: false });
+      const env = [ CY(0.17, 0.72, glass, 0, 1.07, 0), at(new THREE.SphereGeometry(0.17, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), glass, 0, 1.43, 0), CY(0.07, 0.07, MAT.jug, 0, 1.6, 0, 24) ];
+      env.forEach(m => { m.renderOrder = 2; });
+      const fil = [ HELIX("x", 0.2, 0.025, 7, 0.008, MAT.nickel, 0, 1.12, 0), HELIX("x", 0.2, 0.025, 7, 0.008, MAT.nickel, 0, 1.3, 0.03),
+                    CY(0.008, 0.6, MAT.steel, 0.07, 0.92, 0, 8), CY(0.008, 0.6, MAT.steel, -0.07, 0.92, 0, 8), CY(0.008, 0.78, MAT.steel, 0, 0.98, -0.06, 8),
+                    at(new THREE.CylinderGeometry(0.06, 0.06, 0.18, 24, 1, true, 0, Math.PI), MAT.steel, 0, 1.13, -0.02) ];
+      const base = [ CY(0.21, 0.28, MAT.nickel, 0, 0.56, 0), CY(0.3, 0.035, MAT.steel, 0, 0.72, 0), B(0.12, 0.035, 0.08, MAT.steel, 0.32, 0.72, 0), B(0.12, 0.035, 0.08, MAT.steel, -0.3, 0.72, 0.12) ];
+      const plug = [ CY(0.19, 0.2, MAT.black, 0, 0.33, 0) ];
+      [[-0.08, 0], [0.08, 0], [0, 0.1]].forEach(([x, z]) => plug.push(B(0.035, 0.24, 0.09, MAT.brass, x, 0.14, z)));
+      return [ piece("Metal base", [0,1,0], 0, base, [0.2, 0, 0]), piece("Glass envelope", [0,1,0], 0.95, env, [0.16, 0.1, 0]),
+               piece("Filaments", [0,1,0], 0.45, fil, [0.1, 0.1, 0]), piece("Terminals", [0,-1,0], 0.55, plug, [0.2, 0, 0]) ];
+    },
+
+    gasSpring(){
+      const body = [ CX(0.16, 2.0, MAT.black, -0.4, 0, 0), CX(0.162, 0.3, MAT.accent, -0.2, 0, 0), B(0.26, 0.06, 0.005, MAT.paper, -0.2, 0, 0.163) ];
+      const rod = [ CX(0.045, 1.5, MAT.chrome, 1.32, 0, 0) ];
+      const seal = [ CX(0.12, 0.08, MAT.dark, 0.64, 0, 0), RING(0.06, 0.02, MAT.rubber, 0.7, 0, 0).rotateZ(Math.PI / 2) ];
+      const endR = [ CX(0.08, 0.26, MAT.black, 2.18, 0, 0), at(new THREE.SphereGeometry(0.11, 24, 16), MAT.black, 2.38, 0, 0) ];
+      const endL = [ CX(0.08, 0.26, MAT.black, -1.53, 0, 0), at(new THREE.SphereGeometry(0.11, 24, 16), MAT.black, -1.73, 0, 0) ];
+      return [ piece("Pressure tube", [0,1,0], 0, body, [0, 0.16, 0]), piece("Piston rod", [1,0,0], 0.55, rod),
+               piece("Seal & rod guide", [0,1,0], 0.45, seal), piece("End fittings", [1,0,0], 1.1, endR), piece("", [-1,0,0], 0.6, endL) ];
+    },
+
+    horn(){
+      const housing = [ at(new THREE.CylinderGeometry(0.9, 0.72, 0.35, 64).rotateX(Math.PI / 2), MAT.case, 0, 0, -0.2),
+        B(0.3, 0.25, 0.16, MAT.case2, 0, -0.92, -0.2), B(0.05, 0.18, 0.02, MAT.brass, 0.07, -1.1, -0.2), B(0.05, 0.18, 0.02, MAT.brass, -0.07, -1.1, -0.2) ];
+      const coil = [ CZ(0.32, 0.3, MAT.copper, 0, 0, 0.05), CZ(0.12, 0.34, MAT.steel, 0, 0, 0.05) ];
+      const diaphragm = [ CZ(0.86, 0.02, MAT.steel, 0, 0, 0.2), CZ(0.08, 0.06, MAT.steel, 0, 0, 0.22, 16) ];
+      const cover = [ CZ(0.92, 0.06, MAT.spring, 0, 0, 0.33), CZ(0.2, 0.08, MAT.case, 0, 0, 0.35) ];
+      for (const r of [0.38, 0.55, 0.72]) cover.push(at(new THREE.TorusGeometry(r, 0.018, 8, 64), MAT.case, 0, 0, 0.365));
+      const bracket = [ B(0.14, 0.95, 0.04, MAT.steel, 0, 0.92, -0.4), CZ(0.06, 0.12, MAT.steel, 0, 0.45, -0.38, 6) ];
+      return [ piece("Housing & terminals", [0,0,1], 0, housing, [0, -0.6, 0]),
+               piece("Electromagnet coil", [0,0,1], 0.55, coil, [0, 0.25, 0]),
+               piece("Diaphragm", [0,0,1], 1.0, diaphragm, [0, -0.7, 0]),
+               piece("Resonator disc", [0,0,1], 1.4, [ CZ(0.45, 0.03, MAT.steel, 0, 0, 0.27) ], [0, 0.4, 0]),
+               piece("Front cover", [0,0,1], 1.9, cover, [0, -0.75, 0]),
+               piece("Mounting bracket", [0,1,-0.6], 0.8, bracket, [0, 0.35, 0]) ];
+    }
+
+  };
+
+  const cache = {};
+  // outer parts leave first and come back last; once apart, they float gently
+  function setExplode(m, t, now){
+    m.pieces.forEach(p => {
+      const delay = m.maxDist ? (1 - p.dist / m.maxDist) * 0.4 : 0;
+      let e = Math.max(0, Math.min(1, (t - delay) / 0.6)); e = e * e * (3 - 2 * e);
+      const bob = (now && !reduceMotion) ? Math.sin(now / 900 + p.phase) * 0.03 * p.dist * e : 0;
+      p.shift = p.dist * e + bob;
+      p.obj.position.copy(p.base).addScaledVector(p.dir, p.shift);
+      if (p.line){
+        const a = p.line.geometry.attributes.position;
+        a.setXYZ(0, p.center.x, p.center.y, p.center.z);
+        a.setXYZ(1, p.center.x + p.dir.x * p.shift, p.center.y + p.dir.y * p.shift, p.center.z + p.dir.z * p.shift);
+        a.needsUpdate = true; p.line.computeLineDistances(); p.line.geometry.computeBoundingSphere();
+        p.line.material.opacity = 0.75 * Math.min(1, p.shift / 0.15);
+      }
+    });
+  }
+  function getModel(key){
+    if (cache[key]) return cache[key];
+    const group = new THREE.Group();
+    const m = { group, pieces: MODELS[key]() };
+    m.maxDist = Math.max(...m.pieces.map(p => p.dist));
+    m.pieces.forEach((p, k) => {
+      group.add(p.obj); p.base = p.obj.position.clone(); p.phase = k * 1.7;
+      group.updateMatrixWorld(true);
+      p.center = new THREE.Box3().setFromObject(p.obj).getCenter(new THREE.Vector3());
+      p.anchor = p.center.clone();
+      if (p.off) p.anchor.add(p.off);
+      // dashed assembly line from where the piece sits to where it has moved
+      if (p.dist > 0){
+        const lg = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3));
+        p.line = new THREE.Line(lg, new THREE.LineDashedMaterial({ color: 0x5e6c7a, dashSize: 0.05, gapSize: 0.04, transparent: true, opacity: 0 }));
+        group.add(p.line);
+      }
+      if (p.label){
+        const el = document.createElement("div");
+        el.className = "tag"; el.setAttribute("aria-hidden", "true");
+        el.innerHTML = "<i></i><b></b><span></span>";
+        el.querySelector("span").textContent = p.label;
+        stage.appendChild(el); p.el = el;
+      }
+    });
+    setExplode(m, 1); group.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(group);
+    setExplode(m, 0);
+    m.sphere = box.getBoundingSphere(new THREE.Sphere());
+    m.floorY = box.min.y;
+    group.visible = false; scene.add(group);
+    return cache[key] = m;
+  }
+
+  /* ---------- photo spin mode (car only) ---------- */
+  const ps = CONFIG.photoSpin;
+  let photoMode = false, frames = [], frameImg = null;
+  if (ps.count > 0){
+    const pad = n => String(n).padStart(ps.digits, "0");
+    for (let i = 0; i < ps.count; i++){
+      const im = new Image(); im.src = ps.pattern.replace("{n}", pad(ps.startNumber + i)); frames.push(im);
+    }
+    frameImg = document.createElement("img"); frameImg.className = "frame"; frameImg.alt = "";
+    frames[0].onload = () => { photoMode = true; stage.prepend(frameImg); };
+    frames[0].onerror = () => console.warn("Photo frames not found at", frames[0].src, "- showing the 3D car instead.");
+  }
+
+  /* ---------- state ---------- */
+  let mode = "car", cur = null, curIdx = -1;
+  let explode = 0, explodeWant = 1, openedAt = 0;
+  let deg = +slider.value, vel = 0, target = null, dragging = false, lastInteract = 0;
+  const wrap = d => ((d % 360) + 360) % 360;
+  function spinTo(d){
+    lastInteract = performance.now();
+    if (reduceMotion){ deg = d; target = null; return; }
+    let diff = wrap(d - deg); if (diff > 180) diff -= 360;
+    target = deg + diff; vel = 0;
+  }
+
+  function fadeSwap(fn){
+    if (reduceMotion){ fn(); return; }
+    stage.classList.add("swapping");
+    setTimeout(() => { fn(); requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove("swapping"))); }, 180);
+  }
+
+  function openPart(i){
+    const p = CONFIG.parts[i];
+    fadeSwap(() => {
+      if (cur){ cur.group.visible = false; cur.pieces.forEach(x => x.el && (x.el.style.opacity = 0)); }
+      cur = getModel(p.model); curIdx = i; mode = "part";
+      car.visible = false; cur.group.visible = true;
+      explode = 0; explodeWant = 1; openedAt = performance.now(); setExplode(cur, 0);
+      deg = p.viewDeg; target = null; vel = 0; lastInteract = performance.now();
+      setActive(-1);
+
+      $("carHint").hidden = true; $("partUI").hidden = false;
+      $("partTitle").textContent = p.label;
+      $("partNote").textContent = p.note || ""; $("partNote").hidden = !p.note;
+      $("partCta").href = p.url;
+      $("dragHint").textContent = "Drag to turn the part";
+      updateExplodeBtn();
+      items.forEach((it, j) => it.classList.toggle("current", j === i));
+      stage.setAttribute("aria-label", p.label + " taken apart. Use left and right arrow keys to turn it, Escape to go back to the car.");
+      history.replaceState(null, "", "#" + p.slug);
+    });
+  }
+
+  function closePart(){
+    if (mode !== "part") return;
+    const face = CONFIG.parts[curIdx].faceDeg;
+    fadeSwap(() => {
+      cur.group.visible = false; cur.pieces.forEach(x => x.el && (x.el.style.opacity = 0));
+      cur = null; curIdx = -1; mode = "car"; car.visible = true;
+      deg = face; target = null; vel = 0; lastInteract = performance.now();
+      $("carHint").hidden = false; $("partUI").hidden = true;
+      $("dragHint").textContent = "Drag to turn the car";
+      items.forEach(it => it.classList.remove("current"));
+      stage.setAttribute("aria-label", "Car you can rotate. Use left and right arrow keys to turn it, Enter to open the catalogue.");
+      history.replaceState(null, "", location.pathname + location.search);
+    });
+  }
+
+  function updateExplodeBtn(){
+    const b = $("explodeBtn");
+    b.textContent = explodeWant ? "Put back together" : "Take apart";
+    b.setAttribute("aria-pressed", explodeWant ? "true" : "false");
+  }
+  $("explodeBtn").addEventListener("click", () => { explodeWant = explodeWant ? 0 : 1; updateExplodeBtn(); lastInteract = performance.now(); });
+  $("backBtn").addEventListener("click", closePart);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closePart(); });
+
+  /* ---------- car hotspots + list ---------- */
+  const tmp = new THREE.Vector3(), ray = new THREE.Raycaster();
+  const groupLists = {};
+  function groupList(name){
+    if (groupLists[name]) return groupLists[name];
+    const d = document.createElement("div"), h = document.createElement("h3"), ul = document.createElement("ul");
+    h.textContent = name; d.append(h, ul); list.appendChild(d);
+    return groupLists[name] = ul;
+  }
+  const spots = [], items = [];
+  const placeY = pos => pos[1] === "hood" ? car.userData.topY(pos[0], pos[2]) + 0.015
+                      : pos[1] === "surface" ? car.userData.topY(pos[0], pos[2]) + 0.05 : pos[1];
+  function makeSpot(p, i, m){
+    const a = document.createElement("a");
+    a.className = "hotspot"; a.href = "#" + p.slug;
+    a.innerHTML = '<span class="dot"></span><span class="label"></span>';
+    a.querySelector(".label").textContent = m.label;
+    a.setAttribute("aria-label", "See " + p.label + " taken apart");
+    a.addEventListener("pointerdown", e => e.stopPropagation());
+    a.addEventListener("click", e => { e.preventDefault(); openPart(i); });
+    a.addEventListener("pointerenter", () => setActive(i));
+    a.addEventListener("pointerleave", () => setActive(-1));
+    a.addEventListener("focus", () => { if (mode === "car"){ setActive(i); spinTo(m.faceDeg); } });
+    a.addEventListener("blur", () => setActive(-1));
+    stage.appendChild(a);
+    const n = new THREE.Vector3(...m.normal).normalize(), at3 = new THREE.Vector3(m.pos[0], placeY(m.pos), m.pos[2]);
+    spots.push({ i, el: a, pos: at3, normal: n, probe: at3.clone().addScaledVector(n, 0.04) });
+  }
+  CONFIG.parts.forEach((p, i) => {
+    makeSpot(p, i, p);
+    (p.also || []).forEach(m => makeSpot(p, i, Object.assign({ label: p.label, normal: p.normal, faceDeg: p.faceDeg }, m)));
+
+    const li = document.createElement("li");
+    const la = document.createElement("a");
+    la.href = "#" + p.slug; la.textContent = p.label;
+    const show = () => { if (mode === "car"){ setActive(i); spinTo(p.faceDeg); } };
+    la.addEventListener("pointerenter", show); la.addEventListener("focus", show);
+    la.addEventListener("pointerleave", () => setActive(-1)); la.addEventListener("blur", () => setActive(-1));
+    la.addEventListener("click", e => {
+      e.preventDefault();
+      const r = stage.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight) stage.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      if (curIdx !== i) openPart(i);
+    });
+    li.appendChild(la); groupList(p.group || "Parts").appendChild(li);
+    items.push(la);
+  });
+
+  let active = -1;
+  function setActive(i){
+    active = i;
+    spots.forEach(s => s.el.classList.toggle("active", s.i === i));
+    items.forEach((it, j) => it.classList.toggle("active", j === i));
+  }
+
+  /* ---------- drag / click / keys ---------- */
+  let lastX = 0, lastT = 0, moved = 0, downT = 0;
+  stage.addEventListener("pointerdown", e => {
+    dragging = true; moved = 0; lastX = e.clientX; lastT = downT = performance.now();
+    target = null; vel = 0; stage.setPointerCapture(e.pointerId); stage.classList.add("dragging");
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    const now = performance.now(), dx = e.clientX - lastX;
+    const step = dx * 360 / Math.max(stage.clientWidth, 1) * 0.9;
+    deg -= step; vel = -step / Math.max(now - lastT, 1) * 16;
+    moved += Math.abs(dx); lastX = e.clientX; lastT = now; lastInteract = now;
+  });
+  function endDrag(e){
+    if (!dragging) return;
+    dragging = false; stage.classList.remove("dragging");
+    if (moved < 6 && performance.now() - downT < 500) handleClick(e);
+  }
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", () => { dragging = false; stage.classList.remove("dragging"); });
+
+  function handleClick(e){
+    if (mode !== "car") return;
+    const r = stage.getBoundingClientRect();
+    if (photoMode){
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      if (x > 0.12 && x < 0.88 && y > 0.15 && y < 0.9) openUrl(CONFIG.catalogueUrl);
+      return;
+    }
+    const ndc = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    if (ray.intersectObject(car, true).length) openUrl(CONFIG.catalogueUrl);
+  }
+
+  stage.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft"){ spinTo(deg + 15); e.preventDefault(); }
+    else if (e.key === "ArrowRight"){ spinTo(deg - 15); e.preventDefault(); }
+    else if (e.key === "Enter" && mode === "car"){ openUrl(CONFIG.catalogueUrl); }
+  });
+  slider.addEventListener("input", () => { deg = +slider.value; target = null; vel = 0; lastInteract = performance.now(); });
+
+  /* ---------- layout ---------- */
+  let W = 0, H = 0;
+  function resize(){
+    W = stage.clientWidth; H = stage.clientHeight;
+    renderer.setSize(W, H, false);
+    camera.aspect = W / H; camera.updateProjectionMatrix();
+    ORBIT.radius = W / H < 1.5 ? 11.2 : 10.2;
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  let calibBox = null;
+  if (calibrating){ calibBox = document.createElement("div"); calibBox.className = "calib"; stage.appendChild(calibBox); }
+
+  /* ---------- loop ---------- */
+  let prev = performance.now();
+  function tick(now){
+    const dt = Math.min((now - prev) / 1000, 0.05); prev = now;
+
+    // rotation
+    if (target !== null){
+      deg += (target - deg) * Math.min(1, dt * 6);
+      if (Math.abs(target - deg) < 0.2){ deg = target; target = null; }
+    } else if (!dragging){
+      const idle = mode === "part" ? 1800 : 3500;
+      if (Math.abs(vel) > 0.01){ deg += vel; vel *= 0.92; }
+      else if (!reduceMotion && active < 0 && now - lastInteract > idle && document.activeElement !== stage){ deg += (mode === "part" ? 12 : 7) * dt; }
+    }
+
+    // camera
+    const th = deg * Math.PI / 180;
+    let tx = 0, ty = ORBIT.targetY, tz = 0, R = ORBIT.radius, el = ORBIT.elevation;
+    if (mode === "part"){
+      const c = cur.sphere.center, vf = camera.fov * Math.PI / 180;
+      const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
+      R = cur.sphere.radius / Math.sin(Math.min(vf, hf) / 2) * 1.08;
+      tx = c.x; ty = c.y; tz = c.z; el = 0.36;
+    }
+    camera.position.set(tx + R * Math.cos(el) * Math.sin(th), ty + R * Math.sin(el), tz + R * Math.cos(el) * Math.cos(th));
+    camera.lookAt(tx, ty, tz);
+    camera.updateMatrixWorld();
+
+    // floor
+    if (mode === "part"){
+      const s = cur.sphere.radius / 3.1;
+      floor.scale.setScalar(s); floor.position.set(cur.sphere.center.x, cur.floorY - 0.01, cur.sphere.center.z);
+      camLight.intensity = 0.35; camLight.position.copy(camera.position); camLight.target.position.set(tx, ty, tz);
+    } else {
+      floor.scale.setScalar(1); floor.position.set(0, 0, 0); camLight.intensity = 0;
+    }
+
+    // exploded parts
+    if (mode === "part"){
+      const want = (now - openedAt < 450) ? 0 : explodeWant;
+      explode = reduceMotion ? want : explode + (want - explode) * Math.min(1, dt * 3.2);
+      if (Math.abs(want - explode) < 0.001) explode = want;
+      setExplode(cur, explode, now);
+      for (const p of cur.pieces){
+        if (!p.el) continue;
+        const op = p.dist ? Math.max(0, Math.min(1, (p.shift / p.dist - 0.55) / 0.35)) : Math.max(0, Math.min(1, (explode - 0.55) / 0.35));
+        tmp.copy(p.anchor).addScaledVector(p.dir, p.shift).project(camera);
+        const x = (tmp.x + 1) / 2 * W, y = (1 - tmp.y) / 2 * H;
+        p.el.style.transform = "translate(" + (x - 5).toFixed(1) + "px," + (y - 10).toFixed(1) + "px)";
+        p.el.style.opacity = op;
+      }
+    }
+
+    // draw
+    const showPhoto = photoMode && mode === "car";
+    renderer.domElement.style.visibility = showPhoto ? "hidden" : "visible";
+    if (frameImg) frameImg.style.visibility = showPhoto ? "visible" : "hidden";
+    if (showPhoto){
+      const idx = ((Math.round((ps.clockwise ? 1 : -1) * (deg - ps.firstFrameAngle) / 360 * ps.count) % ps.count) + ps.count) % ps.count;
+      const src = frames[idx].src;
+      if (frameImg.src !== src) frameImg.src = src;
+      if (calibBox) calibBox.textContent = "Angle " + Math.round(wrap(deg)) + "°  |  frame " + (ps.startNumber + idx);
+    } else {
+      renderer.render(scene, camera);
+      if (calibBox) calibBox.textContent = "Angle " + Math.round(wrap(deg)) + "°";
+    }
+    slider.value = Math.round(wrap(deg));
+
+    // car hotspots: project, fade by facing, hide when the car body is in the way
+    const cal = photoMode ? ps.calib : { scale: 1, dx: 0, dy: 0 };
+    for (const s of spots){
+      let vis = 0;
+      if (mode === "car"){
+        tmp.copy(camera.position).sub(s.pos).normalize();
+        vis = Math.max(0, Math.min(1, (tmp.dot(s.normal) - 0.05) / 0.25));
+        if (vis > 0){
+          const dist = camera.position.distanceTo(s.probe);
+          ray.set(camera.position, tmp.copy(s.probe).sub(camera.position).normalize());
+          const hit = ray.intersectObject(car, true)[0];
+          if (hit && hit.distance < dist - 0.06) vis = 0;
+        }
+        tmp.copy(s.pos).project(camera);
+        let x = (tmp.x + 1) / 2 * W, y = (1 - tmp.y) / 2 * H;
+        x = W/2 + (x - W/2) * cal.scale + cal.dx * W;
+        y = H/2 + (y - H/2) * cal.scale + cal.dy * H;
+        s.el.style.transform = "translate(" + (x - 9).toFixed(1) + "px," + (y - 9).toFixed(1) + "px)";
+      }
+      s.el.style.opacity = vis;
+      s.el.style.pointerEvents = vis > 0.3 ? "auto" : "none";
+      s.el.tabIndex = vis > 0.3 || s.el === document.activeElement ? 0 : -1;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // open straight into a part when the address ends in #slug
+  const start = CONFIG.parts.findIndex(p => "#" + p.slug === location.hash);
+  if (start >= 0) openPart(start);
+})();
+</script>
+<script src="/assets/cart.js"></script>
+<script src="/assets/site-nav.js"></script>
+</body>
+</html>
