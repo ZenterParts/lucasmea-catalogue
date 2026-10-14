@@ -8,6 +8,8 @@ window.LS = (function () {
   'use strict';
   var SB_URL = 'https://kyegujgvlsbttyrlibgn.supabase.co';
   var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5ZWd1amd2bHNidHR5cmxpYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNTQ4NjUsImV4cCI6MjEwNjgzMDg2NX0.qw8n7Y9l8zO-npZ4BDlqK9PvksRQpEVg6BxqEo_MnWs';
+  // invitation and password-reset links arrive as #access_token=…&type=invite|recovery: read it before the client consumes it
+  var LINK_TYPE = (/[#&]type=(invite|recovery|signup)/.exec(location.hash) || [])[1] || null;
   var sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   var L = { sb: sb, PAGE: 80, ROLE: null, EMAIL: '', CATS: [], apps: [], state: {} };
 
@@ -363,12 +365,23 @@ window.LS = (function () {
   // =====================================================================
   // sign in
   // =====================================================================
-  var recovering = false;
+  var recovering = !!LINK_TYPE;
   function authScreen(id) { $('app').hidden = true; $('auth').hidden = false; ['login', 'setPass', 'noAccess'].forEach(function (x) { $(x).hidden = x !== id; }); }
-  sb.auth.onAuthStateChange(function (ev) { if (ev === 'PASSWORD_RECOVERY') { recovering = true; authScreen('setPass'); } });
+  function passScreen() {
+    var invite = LINK_TYPE === 'invite' || LINK_TYPE === 'signup';
+    $('setPassTitle').textContent = invite ? 'Welcome! Choose your password' : 'Choose a new password';
+    $('setPassIntro').textContent = invite ? 'You have been invited to the Lucas MEA staff site. Choose a password (at least 8 characters) to finish setting up your account.' : '';
+    authScreen('setPass');
+  }
+  sb.auth.onAuthStateChange(function (ev) { if (ev === 'PASSWORD_RECOVERY') { recovering = true; passScreen(); } });
   async function boot() {
     try {
-      if (recovering) return;
+      if (recovering) {
+        var ss = (await sb.auth.getSession()).data.session;
+        if (ss) { $('setPassEmail').textContent = ss.user.email; return passScreen(); }
+        recovering = false; LINK_TYPE = null;   // link expired or already used
+        $('lMsg').className = 'msg err'; $('lMsg').textContent = 'That link has expired or was already used. Ask the data team for a new invitation, or use "Forgot password?".';
+      }
       var session = (await sb.auth.getSession()).data.session;
       if (!session) return authScreen('login');
       L.EMAIL = session.user.email;
@@ -402,7 +415,7 @@ window.LS = (function () {
     if ($('np1').value !== $('np2').value) { m.className = 'msg err'; m.textContent = 'The two passwords are different.'; return; }
     var r = await sb.auth.updateUser({ password: $('np1').value });
     if (r.error) { m.className = 'msg err'; m.textContent = r.error.message; return; }
-    recovering = false; history.replaceState(null, '', '/admin/'); L.toast('Password saved'); boot();
+    recovering = false; LINK_TYPE = null; history.replaceState(null, '', '/admin/'); L.toast('Password saved. Welcome!'); boot();
   });
   async function signOut() { await sb.auth.signOut(); L.ROLE = null; location.replace('/admin/'); }
   $('naOut').addEventListener('click', signOut);
