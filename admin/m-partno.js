@@ -21,10 +21,17 @@
       crumbs: [['Part numbers', BASE], ['New part number']],
       buttons: '<button type="button" class="btn editor-only" id="pnGen">Generate part number</button><button type="button" class="btn ghost" id="pnReset">Discard</button>',
       sheet: '<div class="o-title"><h1>New part number</h1>' + L.pill('Numbering rules to be added', 'New') + '</div><div class="o-subtitle">Fill in the product, then generate its Lucas part number. The rules will be added by the data team; until then Generate shows what it would use.</div>' +
-        '<div class="o-groups">' + L.group('Product', [['Range', '<select id="pnRange">' + L.rangeOptions() + '</select>'], ['Product type', '<input id="pnType" placeholder="e.g. Spin-on oil filter">'], ['Description', '<input id="pnDesc">'], ['Brand', '<input id="pnBrand" value="Lucas">']]) +
+        '<div class="o-groups">' + L.group('Product', [['Range', '<select id="pnRange">' + L.rangeOptions() + '</select><div class="small muted" id="pnHint" style="margin-top:4px"></div>'], ['Product type', '<input id="pnType" placeholder="e.g. Spin-on oil filter">'], ['Description', '<input id="pnDesc">'], ['Brand', '<input id="pnBrand" value="Lucas">']]) +
         L.group('Source', [['Supplier part no.', '<input id="pnSupplier">'], ['Origin', '<input id="pnOrigin" placeholder="e.g. China">'], ['OE / references', '<textarea id="pnOe" rows="3" placeholder="One per line"></textarea>']]) + '</div><div id="pnOut"></div>'
     });
     $('pnReset').onclick = single;
+    var hint = async function () {
+      try {
+        var c = L.cat($('pnRange').value), rows = L.must(await sb.from('pn_sequences').select('prefix,last_pn,next_pn').ilike('subcategory', '%' + c.subcategory_key + '%'));
+        $('pnHint').innerHTML = rows.length ? rows.map(function (r) { return '<span class="mono">' + esc(r.prefix) + '</span>: last <span class="mono">' + esc(r.last_pn) + '</span>, next free <b class="mono ok">' + esc(r.next_pn) + '</b>'; }).join('<br>') : '';
+      } catch (e) { $('pnHint').textContent = ''; }
+    };
+    $('pnRange').addEventListener('change', hint); hint();
     $('pnGen').onclick = async function () {
       var c = L.cat($('pnRange').value), out = $('pnOut');
       var input = { range: c.subcategory_key, group: c.group_name, type: $('pnType').value.trim(), brand: $('pnBrand').value.trim(), supplier_pn: $('pnSupplier').value.trim(), origin: $('pnOrigin').value.trim(), description: $('pnDesc').value.trim(),
@@ -68,11 +75,24 @@
   async function ranges() {
     L.cp({ crumbs: [['Part numbers', BASE], ['Numbering by range']] });
     try {
-      var rows = L.must(await sb.from('category_overview').select('name,group_name,subcategory_key,item_count,prefixes,last_added,sort_order').eq('status', 'live').order('sort_order'));
-      L.content('<p class="muted">The prefixes each range uses today. The numbering rules will build on these.</p>' + L.listView([
-        { label: 'Range', render: function (r) { return esc(r.name); } }, { label: 'Group', render: function (r) { return esc(r.group_name); } }, { label: 'Parts', num: true, render: function (r) { return L.qty(r.item_count); } },
-        { label: 'Prefixes in use', render: function (r) { return '<span class="mono">' + esc(r.prefixes || '') + '</span>'; } }, { label: 'Last added', render: function (r) { return esc(L.dt(r.last_added)); } }
-      ], rows, function (r) { return L.href('parts', [], { range: r.subcategory_key }); }));
+      var rows = L.must(await sb.from('pn_sequences').select('*'));
+      var last = {}; if (rows.length) L.must(await sb.from('products').select('lucas_pn,short_desc').in('lucas_pn', rows.map(function (r) { return r.last_pn; }))).forEach(function (p) { last[p.lucas_pn] = p.short_desc; });
+      var order = {}; L.CATS.forEach(function (c, i) { order[c.subcategory_key] = i; });
+      rows.sort(function (a, b) { return (order[a.subcategory] != null ? order[a.subcategory] : 99) - (order[b.subcategory] != null ? order[b.subcategory] : 99) || a.prefix.localeCompare(b.prefix); });
+      L.content('<p class="muted">One line per part-number prefix. <b>Next free</b> continues after the highest number in use. Numbers missing below it are counted but not reused, as they may belong to retired parts.</p>' + L.listView([
+        { label: 'Range', render: function (r) { return esc(r.subcategory); } },
+        { label: 'Prefix', render: function (r) { return '<span class="mono">' + esc(r.prefix) + '</span>'; } },
+        { label: 'Product (last part)', cls: 'clip', render: function (r) { return esc(last[r.last_pn] || ''); } },
+        { label: 'Parts', num: true, render: function (r) { return L.qty(r.parts); } },
+        { label: 'Last part no. used', cls: 'pn', render: function (r) { return '<a href="' + L.href('parts', ['p', r.last_pn]) + '" class="mono">' + esc(r.last_pn) + '</a>'; } },
+        { label: 'Next free part no.', render: function (r) { return '<b class="mono ok">' + esc(r.next_pn) + '</b> <button type="button" class="link small" data-copy="' + esc(r.next_pn) + '">copy</button>'; } },
+        { label: 'Unused below last', render: function (r) { return r.unused_below_last ? L.qty(r.unused_below_last) + ' <span class="muted small">(first: <span class="mono">' + esc(r.first_unused_pn) + '</span>)</span>' : '<span class="muted">none</span>'; } },
+        { label: 'Last added', render: function (r) { return '<span class="small">' + esc(L.dt(r.last_added)) + '</span>'; } }
+      ], rows));
+      $('content').querySelector('.o-list').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-copy]'); if (!b) return;
+        var t = b.dataset.copy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { L.toast(t + ' copied'); }, function () { L.toast(t); });
+      });
     } catch (e) { L.fail(e); }
   }
 
