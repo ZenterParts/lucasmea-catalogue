@@ -80,3 +80,25 @@ table.grid{border-collapse:collapse; width:100%; font-size:.88rem;}
 .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--lucas-black); color:#fff; padding:10px 18px 8px; border-radius:6px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:60;}
 .toast.show{opacity:1;}
 body.viewer .editor-only{display:none !important;}
+
+/* ---- modules (v2) ---- */
+.cols2.top{margin-top:0; margin-bottom:16px; align-items:start;}
+.row-actions{display:flex; gap:12px; align-items:center; margin-top:12px;}
+.chips{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+.chip{border:1px solid var(--lucas-border); background:#fff; border-radius:14px; padding:5px 12px 3px; font:600 .85rem var(--lucas-font); color:var(--lucas-black); cursor:pointer;}
+.chip:hover{border-color:var(--lucas-green);}
+.chip.on{background:var(--lucas-black); color:#fff; border-color:var(--lucas-black);}
+.chip.good{color:var(--lucas-green-dark);} .chip.good.on{background:var(--lucas-green); border-color:var(--lucas-green); color:#fff;}
+.chip.warn{color:#b42318;} .chip.warn.on{background:#b42318; border-color:#b42318; color:#fff;}
+.chip.static{cursor:default; background:#f4f5f4;} .chip.static:hover{border-color:var(--lucas-border);}
+.toolbar .sep{flex:1;}
+.ok{color:var(--lucas-green-dark); font-weight:600;}
+.notice{background:#fff8e6; border:1px solid #f1d58a; border-radius:6px; padding:12px 14px; margin-top:14px;}
+.notice.good{background:var(--lucas-green-10); border-color:var(--lucas-green-20);} .notice.bad{background:#fdecea; border-color:#f3b7b0;}
+.notice .big{font-size:1.4rem; letter-spacing:.02em;}
+.grid tr.cont td{border-top:0;} .grid tr.cont{background:#fafcfb;}
+table.grid.compact{width:auto; min-width:60%; border:1px solid var(--lucas-border);}
+table.grid.compact input{margin:0; padding:5px 8px 3px; min-width:90px;}
+.grid select, .grid input.pnfix{margin:0; padding:4px 6px 2px; width:auto; font-size:.85rem;}
+svg.ean{height:34px; width:auto; display:block;}
+#lkInput{font-family:ui-monospace, Menlo, Consolas, monospace; font-size:.88rem;}
