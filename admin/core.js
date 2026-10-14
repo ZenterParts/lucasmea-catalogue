@@ -127,33 +127,84 @@ window.LS = (function () {
   L.pick = function (o, names) { for (var i = 0; i < names.length; i++) if (o[names[i]] != null && o[names[i]] !== '') return o[names[i]]; return ''; };
   L.PN_COLS = ['lucaspn', 'lucaspartnumber', 'lucaspartno', 'lpnumber', 'lpno', 'lp', 'partnumber', 'partno', 'pn', 'lucas'];
   var isQty = function (s) { return /^\d{1,6}([.,]0+)?$/.test(String(s).trim()); };
-  L.parseListText = function (text) {   // one number per line; "number<TAB|;|,>qty" keeps the quantity
+  function uniq(a) { var seen = {}; return a.filter(function (x) { var k = L.clean(x); if (!k || seen[k]) return false; seen[k] = 1; return true; }); }
+  // pasted text, one row per line:
+  //   "number"                         a single number
+  //   "number ; qty"  or "number<TAB>qty"   keeps the quantity
+  //   "OE | reference ; qty" or tab-separated columns: several numbers for the same row (any of them may match)
+  //   "a, b, c"                        three separate rows
+  L.parseListText = function (text) {
     var out = [];
     String(text || '').split(/\r?\n/).forEach(function (line) {
       line = line.trim(); if (!line) return;
-      var parts = line.split(/\t|;|,/).map(function (s) { return s.trim(); }).filter(Boolean);
-      if (parts.length >= 2 && isQty(parts[parts.length - 1]) && !isQty(parts[0])) out.push({ no: parts.slice(0, -1).join(' '), qty: parseInt(parts[parts.length - 1], 10) || 1 });
-      else parts.forEach(function (p) { out.push({ no: p, qty: 1 }); });
+      var qty = 1, m = /(?:;|\t|,)\s*(\d{1,6})(?:[.,]0+)?\s*$/.exec(line);
+      if (m && line.slice(0, m.index).trim() && !isQty(line.slice(0, m.index).trim())) { qty = parseInt(m[1], 10) || 1; line = line.slice(0, m.index).trim(); }
+      if (/\||\t/.test(line)) {
+        var alts = uniq(line.split(/\||\t/).map(function (x) { return x.trim(); }).filter(Boolean));
+        if (alts.length) out.push({ no: alts[0], alts: alts, cols: [], qty: qty });
+        return;
+      }
+      line.split(/;|,/).map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (p) { out.push({ no: p, alts: [p], cols: [], qty: qty }); });
     });
     return out;
   };
-  var NUM_HEADS = /^(lucaspn|oe|oenumber|oenumbers|oeno|oem|oemnumber|oemno|partnumber|partno|pn|number|no|reference|ref|refno|item|itemno|code|articleno|article|crossreference|competitornumber|lucas)$/;
-  var NUM_HEADS_LOOSE = /(oe|oem|part|number|ref|code|article|item)/;
-  var QTY_HEADS = /^(qty|quantity|qnty|pcs|pieces|units|orderqty|requiredqty|qtyrequired)$/;
-  var DESC_HEADS = /^(description|desc|partname|name|itemdescription)$/;
+  L.listToText = function (items) { return items.map(function (i) { return i.alts.join(' | ') + (i.qty > 1 ? ' ; ' + i.qty : ''); }).join('\n'); };
+  var NUM_HEADS = /^(lucaspn|lucas|lucaspartnumber|oe|oes|oenumber|oenumbers|oeno|oeref|oereference|oem|oemnumber|oemno|oempartnumber|partnumber|partno|pn|number|no|reference|references|ref|refno|refnumber|item|itemno|itemcode|code|productcode|articleno|articlenumber|article|crossreference|crossref|xref|competitornumber|competitor|manufacturerpartnumber|mpn|supplierpn|aftermarket|interchange|alternative|alternate|altpn)$/;
+  var NUM_HEADS_LOOSE = /(oe|oem|part|number|ref|code|article|item|cross|interchange|competitor|mpn)/;
+  var QTY_HEADS = /^(qty|quantity|qnty|qtty|pcs|pieces|units|orderqty|requiredqty|qtyrequired|reqqty|orderquantity)$/;
+  var DESC_HEADS = /^(description|desc|partname|name|itemdescription|productname|application|vehicle|make|model|remarks|notes|brand)$/;
+  // uploaded list: every column that holds part numbers is used (OE, Reference, Article no., ...);
+  // quantity and description columns are recognised by their headings
   L.parseListFile = async function (file) {
     var rows = await L.readRows(file); if (!rows.length) return { items: [], info: 'The file is empty.' };
-    var head = rows[0].map(L.normHead), ni = -1, qi = -1, di = -1;
-    head.forEach(function (h, i) { if (ni < 0 && NUM_HEADS.test(h)) ni = i; if (qi < 0 && QTY_HEADS.test(h)) qi = i; if (di < 0 && DESC_HEADS.test(h)) di = i; });
-    if (ni < 0) head.forEach(function (h, i) { if (ni < 0 && i !== qi && NUM_HEADS_LOOSE.test(h)) ni = i; });
-    var hasHead = ni >= 0 || qi >= 0; if (ni < 0) ni = 0;
+    var head = rows[0].map(L.normHead), qi = -1, di = -1, cols = [];
+    head.forEach(function (h, i) { if (qi < 0 && QTY_HEADS.test(h)) qi = i; else if (di < 0 && /^(description|desc|partname|itemdescription|productname)$/.test(h)) di = i; });
+    head.forEach(function (h, i) { if (i !== qi && i !== di && h && NUM_HEADS.test(h)) cols.push(i); });
+    if (!cols.length) head.forEach(function (h, i) { if (i !== qi && i !== di && h && !DESC_HEADS.test(h) && NUM_HEADS_LOOSE.test(h)) cols.push(i); });
+    var hasHead = cols.length > 0 || qi >= 0;
+    if (!cols.length) cols = [0];
+    var names = cols.map(function (i) { return hasHead ? String(rows[0][i] || '').trim() : ''; });
     var items = [];
     (hasHead ? rows.slice(1) : rows).forEach(function (r) {
-      var no = String(r[ni] == null ? '' : r[ni]).trim(); if (!no) return;
+      var vals = [], cn = [];
+      cols.forEach(function (ci, k) {
+        String(r[ci] == null ? '' : r[ci]).split(/[\n,;]+/).map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (v) {
+          if (!vals.some(function (x) { return L.clean(x) === L.clean(v); }) && L.clean(v)) { vals.push(v); cn.push(names[k]); }
+        });
+      });
+      if (!vals.length) return;
       var q = qi >= 0 ? parseInt(String(r[qi]).replace(/[^\d]/g, ''), 10) : NaN;
-      items.push({ no: no, qty: q > 0 ? q : 1, desc: di >= 0 ? String(r[di] || '').trim() : '' });
+      items.push({ no: vals[0], alts: vals, cols: cn, qty: q > 0 ? q : 1, desc: di >= 0 ? String(r[di] || '').trim() : '' });
     });
-    return { items: items, info: items.length.toLocaleString() + ' numbers read from column "' + (hasHead ? rows[0][ni] : 'first column') + '"' + (qi >= 0 ? ', quantities from "' + rows[0][qi] + '"' : ', quantity 1 each (no quantity column found)') + '.' };
+    var info = items.length.toLocaleString() + ' rows read. Numbers taken from ' + (hasHead ? 'column' + (names.length > 1 ? 's ' : ' ') + names.map(function (n) { return '"' + n + '"'; }).join(', ') : 'the first column') +
+      (names.length > 1 ? ' (a row is found if any of them matches)' : '') + '; ' + (qi >= 0 ? 'quantities from "' + rows[0][qi] + '".' : 'quantity 1 each (no quantity column found).');
+    return { items: items, info: info };
+  };
+  // rows with one or several numbers each -> one result line per (row, matched part), plus the number that matched per row
+  L.lookupItems = async function (items, onProgress) {
+    var terms = [], map = [];
+    items.forEach(function (it, i) { (it.alts && it.alts.length ? it.alts : [it.no]).forEach(function (v, j) { terms.push(v); map.push({ i: i, col: (it.cols || [])[j] || '' }); }); });
+    var res = await L.lookupNumbers(terms, onProgress ? function (d, t) { onProgress(Math.round(d / t * items.length), items.length); } : null);
+    var per = items.map(function () { return { pns: {}, order: [], best: null }; });
+    res.forEach(function (r) {
+      if (!r.lucas_pn) return;
+      var m = map[r.ord - 1], g = per[m.i];
+      if (!g.best) g.best = r.term;
+      var multi = (items[m.i].alts || []).length > 1, via = (m.col && multi ? m.col + ' › ' : '') + (r.matched_via || '');
+      if (!g.pns[r.lucas_pn]) { g.pns[r.lucas_pn] = Object.assign({}, r, { vias: [via] }); g.order.push(r.lucas_pn); }
+      else if (g.pns[r.lucas_pn].vias.indexOf(via) < 0) g.pns[r.lucas_pn].vias.push(via);
+    });
+    var rows = [];
+    items.forEach(function (it, i) {
+      var g = per[i], shown = (it.alts || [it.no]).join(' / '), n = g.order.length;
+      if (!n) { rows.push({ ord: i + 1, term: shown, result: 'Not found', lucas_pn: null, matched_via: null, matches: 0 }); return; }
+      g.order.sort().forEach(function (pn) {
+        var r = g.pns[pn];
+        rows.push({ ord: i + 1, term: shown, result: n > 1 ? 'Several matches' : 'Found', lucas_pn: pn, matched_via: r.vias.join('; '), matches: n,
+          description: r.description, subcategory: r.subcategory, status: r.status, fob_usd: r.fob_usd, available: r.available });
+      });
+    });
+    return { rows: rows, best: per.map(function (g) { return g.best; }) };
   };
   L.lookupNumbers = async function (terms, onProgress) {   // bulk matching in the database, 250 per call, 4 in parallel
     var parts = L.chunks(terms, 250), out = new Array(parts.length), done = 0, next = 0;

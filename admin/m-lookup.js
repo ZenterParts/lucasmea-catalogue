@@ -10,18 +10,19 @@
       buttons: '<button type="button" class="btn" id="lkGo">Look up</button><button type="button" class="btn ghost" id="lkUp">Upload a list</button><button type="button" class="btn ghost" id="lkClear">Clear</button>',
       tools: S.rows.length ? '<button type="button" class="btn ghost" id="lkXls">Download results</button><button type="button" class="btn editor-only" id="lkInq">Create inquiry from this list</button>' : '' });
     L.content('<div class="cols2" style="margin-bottom:14px"><div class="card"><h2>Numbers to look up</h2>' +
-      '<textarea id="lkInput" class="mono" rows="9" placeholder="One number per line, e.g.&#10;04C121004E&#10;MANN W 67/1&#10;5215796; 20   (quantity after ; or a tab)">' + esc(S.text) + '</textarea>' +
+      '<textarea id="lkInput" class="mono" rows="9" placeholder="One row per line, e.g.&#10;04C121004E&#10;MANN W 67/1&#10;5215796 ; 20          (quantity after ;)&#10;90915-YZZJ3 | WE01-13-Z40 ; 2   (OE | reference ; quantity)">' + esc(S.text) + '</textarea>' +
       '<p class="muted small" id="lkInfo">' + esc(S.info) + '</p></div>' +
       '<div class="card"><h2>How it matches</h2><ul class="small" style="margin:0;padding-left:18px;line-height:1.6">' +
       '<li>Spaces, hyphens, dots, slashes and capitals are ignored: <span class="mono">04C 121-004.e</span> = <span class="mono">04C121004E</span>.</li>' +
       '<li>A Lucas part number wins; otherwise OE and competitor numbers are searched.</li>' +
       '<li>A brand in front is dropped if nothing matched: <span class="mono">MANN W67/1</span>, <span class="mono">BOSCH 0 986 452 044</span>.</li>' +
-      '<li>Up to 10,000 numbers at a time; Excel or CSV lists are read by their column headings (OE, part number, reference… and Qty).</li></ul></div></div>' +
+      '<li>Several numbers for one row (OE, reference, article no.…): put them on one line separated by <span class="mono">|</span>, or upload the file: every number column is used and the row is found if any of them matches.</li>' +
+      '<li>Up to 10,000 rows at a time. Quantity after <span class="mono">;</span> or from a Qty column.</li></ul></div></div>' +
       '<div id="lkRes"></div>');
     $('lkGo').onclick = function () { S.info = ''; run(L.parseListText($('lkInput').value)); };
     $('lkInput').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('lkGo').click(); });
     $('lkInput').addEventListener('input', function () { S.text = this.value; });
-    $('lkUp').onclick = function () { L.pickFile(async function (f) { try { var r = await L.parseListFile(f); S.info = r.info; S.text = r.items.map(function (i) { return i.qty > 1 ? i.no + '; ' + i.qty : i.no; }).join('\n'); $('lkInput').value = S.text; $('lkInfo').textContent = r.info; run(r.items); } catch (e) { L.fail(e); } }); };
+    $('lkUp').onclick = function () { L.pickFile(async function (f) { try { var r = await L.parseListFile(f); S.info = r.info; S.text = L.listToText(r.items); $('lkInput').value = S.text; $('lkInfo').textContent = r.info; run(r.items); } catch (e) { L.fail(e); } }); };
     $('lkClear').onclick = function () { S.text = ''; S.items = []; S.rows = []; S.info = ''; page(); };
     if (S.rows.length) results(); else $('lkInput').focus();
   }
@@ -31,7 +32,8 @@
     var btn = $('lkGo'); btn.disabled = true;
     try {
       S.items = items;
-      S.rows = await L.lookupNumbers(items.map(function (i) { return i.no; }), function (d, t) { btn.textContent = 'Looking up ' + d.toLocaleString() + ' / ' + t.toLocaleString(); });
+      var res = await L.lookupItems(items, function (d, t) { btn.textContent = 'Looking up ' + d.toLocaleString() + ' / ' + t.toLocaleString(); });
+      S.rows = res.rows; S.best = res.best;
       S.filter = 'all'; page();
     } catch (e) { L.fail(e); btn.disabled = false; btn.textContent = 'Look up'; }
   }
@@ -43,7 +45,7 @@
   function results() {
     var c = counts(), f = S.filter;
     var rows = S.rows.filter(function (r) { return f === 'all' || r.result === f; }), prev = null;
-    $('lkRes').innerHTML = '<div class="o-bar chips" id="lkChips">' + L.chip(c.all.toLocaleString() + ' numbers', f === 'all' ? 'on' : '', 'all') +
+    $('lkRes').innerHTML = '<div class="o-bar chips" id="lkChips">' + L.chip(c.all.toLocaleString() + ' rows', f === 'all' ? 'on' : '', 'all') +
       L.chip(c.Found.toLocaleString() + ' found', 'good' + (f === 'Found' ? ' on' : ''), 'Found') +
       L.chip(c['Several matches'].toLocaleString() + ' several possible parts', f === 'Several matches' ? 'on' : '', 'Several matches') +
       L.chip(c['Not found'].toLocaleString() + ' not found', 'warn' + (f === 'Not found' ? ' on' : ''), 'Not found') + '</div>' +
@@ -59,7 +61,7 @@
       (rows.length > SHOW ? '<p class="muted small">Showing the first ' + SHOW.toLocaleString() + ' of ' + rows.length.toLocaleString() + ' rows. The Excel download has all of them.</p>' : '');
     $('lkChips').onclick = function (e) { var b = e.target.closest('[data-f]'); if (b) { S.filter = b.dataset.f; results(); } };
     if ($('lkXls')) $('lkXls').onclick = function () { excel().catch(L.fail); };
-    if ($('lkInq')) $('lkInq').onclick = function () { L.newInquiry(S.items.slice()); };
+    if ($('lkInq')) $('lkInq').onclick = function () { L.newInquiry(S.items.slice(), S.best); };
   }
   function excel() {
     var head = ['#', 'Searched', 'Qty', 'Result', 'Lucas PN', 'Matched as', 'Description', 'Range', 'Status', 'FOB USD', 'Line FOB USD', 'Available'];

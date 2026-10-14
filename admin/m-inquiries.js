@@ -114,30 +114,31 @@
   }
 
   // ---------- wizard: new inquiry from a customer's list ----------
-  function wizard(prefill) {
-    var items = prefill || null;
+  function wizard(prefill, prefillBest) {
+    var items = prefill || null, best = prefillBest || null;
     L.modal('New inquiry from a list',
       '<p class="muted">For customers who send a list of OE, competitor or Lucas numbers. Every number is matched to a Lucas part, priced at FOB, and flagged if it isn\'t found.</p>' +
       '<div class="o-groups">' + L.group('Customer', [['Company', '<input id="nCompany">'], ['Contact', '<input id="nName">'], ['Email', '<input id="nEmail" type="email">'], ['Phone', '<input id="nPhone">'], ['Country', '<input id="nCountry">']]) +
         L.group('Inquiry', [['Customer type', '<select id="nType"><option></option><option>Distributor</option><option>Retailer</option><option>Workshop / garage</option><option>Fleet</option><option>Other</option></select>'], ['Received by', '<select id="nSource"><option>Email / list</option><option>WhatsApp</option><option>Phone</option><option>Visit</option></select>'], ['Notes', '<textarea id="nMsg" rows="3"></textarea>']]) + '</div>' +
       '<div class="o-group-title">Parts list</div>' +
       (items ? '<p><b>' + items.length.toLocaleString() + '</b> numbers taken from Number lookup.</p>' :
-        '<div class="cols2"><label>Paste numbers (one per line, quantity after a tab or semicolon)<textarea id="nPaste" class="mono" rows="7" placeholder="04C121004E; 10&#10;W 67/1; 50"></textarea></label>' +
+        '<div class="cols2"><label>Paste numbers (one row per line; several numbers for a row separated by |, quantity after ;)<textarea id="nPaste" class="mono" rows="7" placeholder="04C121004E ; 10&#10;90915-YZZJ3 | WE01-13-Z40 ; 2"></textarea></label>' +
         '<div><label>Or upload Excel / CSV<input type="file" id="nFile" accept=".xlsx,.csv"></label><p class="muted small" id="nInfo"></p></div></div>') +
       '<div id="nPreview"></div><div class="o-footer"><button class="btn" id="nCreate" disabled>Create inquiry</button><button class="btn ghost" id="nCheck">Check list</button><button class="btn ghost" id="nCancel">Cancel</button></div>', true);
     var current = function () { return items || L.parseListText($('nPaste').value); };
     $('nCancel').onclick = L.closeModal;
     if (!items) {
-      $('nFile').onchange = async function () { var f = this.files[0]; if (!f) return; try { var r = await L.parseListFile(f); $('nPaste').value = r.items.map(function (i) { return i.no + '; ' + i.qty; }).join('\n'); $('nInfo').textContent = r.info; $('nCreate').disabled = true; } catch (e) { L.fail(e); } };
-      $('nPaste').oninput = function () { $('nCreate').disabled = true; };
+      $('nFile').onchange = async function () { var f = this.files[0]; if (!f) return; try { var r = await L.parseListFile(f); $('nPaste').value = L.listToText(r.items); $('nInfo').textContent = r.info; best = null; $('nCreate').disabled = true; } catch (e) { L.fail(e); } };
+      $('nPaste').oninput = function () { best = null; $('nCreate').disabled = true; };
     }
     $('nCheck').onclick = async function () {
       var list = current(); if (!list.length) return L.toast('The list is empty');
       if (list.length > 10000) return L.toast('Up to 10,000 lines per inquiry');
       var btn = this; btn.disabled = true;
       try {
-        var res = await L.lookupNumbers(list.map(function (i) { return i.no; }), function (d, t) { btn.textContent = 'Checking ' + d.toLocaleString() + ' / ' + t.toLocaleString(); });
-        var seen = {}, c = { Found: 0, 'Several matches': 0, 'Not found': 0 };
+        var lr = await L.lookupItems(list, function (d, t) { btn.textContent = 'Checking ' + d.toLocaleString() + ' / ' + t.toLocaleString(); });
+        best = lr.best;
+        var seen = {}, c = { Found: 0, 'Several matches': 0, 'Not found': 0 }, res = lr.rows;
         res.forEach(function (r) { if (!seen[r.ord]) { seen[r.ord] = 1; c[r.result]++; } });
         $('nPreview').innerHTML = '<div class="notice"><b>' + list.length.toLocaleString() + '</b> lines: <span class="ok">' + c.Found + ' found</span>, ' + c['Several matches'] + ' with several possible parts (choose after creating), <span class="flag">' + c['Not found'] + ' not found</span>.</div>';
         $('nCreate').disabled = false;
@@ -150,7 +151,8 @@
       try {
         var ref = L.must(await sb.rpc('create_inquiry', {
           header: { company: $('nCompany').value, name: $('nName').value, email: $('nEmail').value, phone: $('nPhone').value, country: $('nCountry').value, type: $('nType').value, message: $('nMsg').value, source: $('nSource').value },
-          lines: list.map(function (i) { return { no: i.no, qty: i.qty || 1, desc: i.desc || '' }; })
+          // the number that matched is sent (OE or reference); all of the customer's numbers are kept in the line's description
+          lines: list.map(function (i, k) { var alts = i.alts || [i.no]; return { no: (best && best[k]) || i.no, qty: i.qty || 1, desc: [i.desc || ''].concat(alts.length > 1 ? [alts.join(' / ')] : []).filter(Boolean).join(' · ') }; })
         }));
         L.closeModal(); L.toast('Inquiry ' + ref + ' created'); L.go(L.href('inquiries', [ref]));
       } catch (e) { L.fail(e); btn.disabled = false; btn.textContent = 'Create inquiry'; }
