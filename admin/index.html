@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lucas Staff</title>
+<link rel="icon" type="image/png" href="/assets/icon-filters.png">
+<link rel="stylesheet" href="/assets/lucas-brand.css">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<header class="lucas-bar">
+  <a href="/admin/" aria-label="Staff home"><img class="lucas-logo" src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
+  <nav id="tabs" class="tabs" hidden>
+    <button type="button" data-tab="inquiries" class="on">Inquiries</button>
+    <button type="button" data-tab="parts">Parts</button>
+    <button type="button" data-tab="prices">Prices</button>
+    <button type="button" data-tab="lookup">Number lookup</button>
+  </nav>
+  <div id="who" class="who" hidden><span id="whoEmail"></span> <span id="whoRole" class="role"></span> <button type="button" id="signOut" class="link">Sign out</button></div>
+  <span class="bar-title" id="barTitle">Staff</span>
+</header>
+
+<main id="main">
+  <!-- sign in -->
+  <section id="login" class="card narrow" hidden>
+    <h1>Staff sign in</h1>
+    <p class="muted">For the Lucas MEA data, product and sales teams.</p>
+    <form id="loginForm">
+      <label>Email<input type="email" id="lEmail" autocomplete="username" required></label>
+      <label>Password<input type="password" id="lPass" autocomplete="current-password" required></label>
+      <button class="btn" type="submit" id="lBtn">Sign in</button>
+      <button class="link" type="button" id="forgot">Forgot password?</button>
+      <p id="lMsg" class="msg" role="status"></p>
+    </form>
+  </section>
+
+  <section id="setPass" class="card narrow" hidden>
+    <h1>Choose a new password</h1>
+    <form id="setPassForm">
+      <label>New password<input type="password" id="np1" minlength="8" autocomplete="new-password" required></label>
+      <label>Repeat it<input type="password" id="np2" minlength="8" autocomplete="new-password" required></label>
+      <button class="btn" type="submit">Save password</button>
+      <p id="npMsg" class="msg" role="status"></p>
+    </form>
+  </section>
+
+  <section id="noAccess" class="card narrow" hidden>
+    <h1>No staff access</h1>
+    <p>You're signed in as <b id="naEmail"></b>, but this account isn't on the staff list. Ask the data team to add you.</p>
+    <button class="btn ghost" type="button" id="naOut">Sign out</button>
+  </section>
+
+  <!-- inquiries -->
+  <section id="tab-inquiries" class="tab" hidden>
+    <div class="toolbar">
+      <h1>Inquiries</h1>
+      <input type="search" id="iqSearch" placeholder="Search inquiry no., company, name or email">
+      <select id="iqStatus"><option value="">All statuses</option><option>New</option><option>Quoted</option><option>Won</option><option>Lost</option><option>Closed</option></select>
+      <button type="button" class="btn ghost" id="iqReload">Refresh</button>
+    </div>
+    <div class="tablewrap"><table class="grid" id="iqTable"></table></div>
+    <div class="pager" id="iqPager"></div>
+  </section>
+
+  <!-- parts -->
+  <section id="tab-parts" class="tab" hidden>
+    <div class="toolbar">
+      <h1>Parts</h1>
+      <select id="ptRange" aria-label="Range"></select>
+      <input type="search" id="ptSearch" placeholder="Search part no., description, OE or competitor number">
+      <select id="ptStatus"><option value="Active">Active</option><option value="">All</option><option value="Inactive">Inactive</option></select>
+      <button type="button" class="btn ghost" id="ptExport">Export to Excel</button>
+      <button type="button" class="btn editor-only" id="ptAdd">Add part</button>
+      <button type="button" class="btn ghost editor-only" id="ptImport">Import parts from Excel</button>
+    </div>
+    <p class="muted small" id="ptInfo"></p>
+    <div class="tablewrap"><table class="grid" id="ptTable"></table></div>
+    <div class="pager" id="ptPager"></div>
+  </section>
+
+  <!-- prices -->
+  <section id="tab-prices" class="tab" hidden>
+    <div class="toolbar"><h1>Prices</h1><button type="button" class="btn ghost" id="prReload">Refresh</button></div>
+    <p class="muted">FOB price in USD per Lucas part number. The FOB price is what inquiries are priced with.</p>
+    <div class="tablewrap"><table class="grid" id="prCoverage"></table></div>
+    <div class="cols2">
+      <div class="card">
+        <h2>Price list template</h2>
+        <p class="muted">Download the parts of a range with their current prices, fill in FOB (and EXW if you have it), then upload the file below.</p>
+        <select id="prTplRange"></select>
+        <label class="check"><input type="checkbox" id="prTplMissing" checked> Only parts without an FOB price</label>
+        <button type="button" class="btn ghost" id="prTpl">Download template</button>
+      </div>
+      <div class="card editor-only">
+        <h2>Upload prices</h2>
+        <p class="muted">Excel (.xlsx) or CSV with a column <b>Lucas PN</b> and a column <b>FOB USD</b>. Optional: <b>EXW USD</b>, <b>Price list</b>. Blank cells are left unchanged.</p>
+        <input type="file" id="prFile" accept=".xlsx,.csv">
+        <div id="prPreview"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- lookup -->
+  <section id="tab-lookup" class="tab" hidden>
+    <div class="toolbar"><h1>Number lookup</h1>
+      <input type="search" id="lkInput" placeholder="Any Lucas, OE or competitor number. Several? Separate with commas or new lines">
+      <button type="button" class="btn" id="lkGo">Find</button></div>
+    <div class="tablewrap"><table class="grid" id="lkTable"></table></div>
+  </section>
+</main>
+
+<!-- side panel for one inquiry or one part -->
+<div id="drawer" class="drawer" hidden>
+  <div class="drawer-in">
+    <button type="button" class="close" id="drawerClose" aria-label="Close">×</button>
+    <div id="drawerBody"></div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status"></div>
+<input type="file" id="ptFile" accept=".xlsx,.csv" hidden>
+
+<script src="/assets/vendor-supabase-2.57.4.min.js"></script>
+<script src="/admin/app.js"></script>
+</body>
+</html>
