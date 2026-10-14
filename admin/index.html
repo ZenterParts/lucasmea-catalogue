@@ -7,198 +7,78 @@
 <title>Lucas Staff</title>
 <link rel="icon" type="image/png" href="/assets/icon-filters.png">
 <link rel="stylesheet" href="/assets/lucas-brand.css">
-<link rel="stylesheet" href="/admin/admin.css?v=2">
+<link rel="stylesheet" href="/admin/admin.css?v=3">
 </head>
 <body>
-<header class="lucas-bar">
-  <a href="/admin/" aria-label="Staff home"><img class="lucas-logo" src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
-  <nav id="tabs" class="tabs" hidden>
-    <button type="button" data-tab="inquiries">Inquiries</button>
-    <button type="button" data-tab="lookup">Number lookup</button>
-    <button type="button" data-tab="parts">Parts &amp; prices</button>
-    <button type="button" data-tab="partno">Part numbers</button>
-    <button type="button" data-tab="barcodes">Barcodes</button>
-    <button type="button" data-tab="inventory">Inventory</button>
+<!-- sign-in screens -->
+<div id="auth" class="auth" hidden>
+  <div class="auth-card">
+    <img src="/assets/lucas-logo.png" alt="Lucas" class="auth-logo" width="992" height="200">
+    <section id="login" hidden>
+      <h1>Staff sign in</h1>
+      <form id="loginForm">
+        <label>Email<input type="email" id="lEmail" autocomplete="username" required></label>
+        <label>Password<input type="password" id="lPass" autocomplete="current-password" required></label>
+        <button class="btn block" type="submit" id="lBtn">Sign in</button>
+        <button class="link" type="button" id="forgot">Forgot password?</button>
+        <p id="lMsg" class="msg" role="status"></p>
+      </form>
+    </section>
+    <section id="setPass" hidden>
+      <h1>Choose a new password</h1>
+      <form id="setPassForm">
+        <label>New password<input type="password" id="np1" minlength="8" autocomplete="new-password" required></label>
+        <label>Repeat it<input type="password" id="np2" minlength="8" autocomplete="new-password" required></label>
+        <button class="btn block" type="submit">Save password</button>
+        <p id="npMsg" class="msg" role="status"></p>
+      </form>
+    </section>
+    <section id="noAccess" hidden>
+      <h1>No staff access</h1>
+      <p>You're signed in as <b id="naEmail"></b>, but this account isn't on the staff list. Ask the data team to add you.</p>
+      <button class="btn ghost block" type="button" id="naOut">Sign out</button>
+    </section>
+  </div>
+</div>
+
+<!-- the application -->
+<div id="app" hidden>
+  <nav class="o-nav" id="nav">
+    <a class="o-home" href="#/" title="Home: all apps" aria-label="Home">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="9.5" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/><rect x="3" y="9.5" width="5" height="5" rx="1"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><rect x="16" y="9.5" width="5" height="5" rx="1"/><rect x="3" y="16" width="5" height="5" rx="1"/><rect x="9.5" y="16" width="5" height="5" rx="1"/><rect x="16" y="16" width="5" height="5" rx="1"/></svg>
+    </a>
+    <a class="o-appname" id="navApp" href="#/"></a>
+    <div class="o-menus" id="navMenus"></div>
+    <div class="o-user" id="navUser">
+      <button type="button" class="o-avatar" id="avatarBtn" aria-haspopup="true"></button>
+      <div class="o-dropdown right" id="userMenu" hidden></div>
+    </div>
   </nav>
-  <div id="who" class="who" hidden><span id="whoEmail"></span> <span id="whoRole" class="role"></span> <button type="button" id="signOut" class="link">Sign out</button></div>
-  <span class="bar-title" id="barTitle">Staff</span>
-</header>
+  <div class="o-cp" id="cp" hidden>
+    <div class="o-cp-left"><div class="o-crumbs" id="cpCrumbs"></div><div class="o-cp-buttons" id="cpButtons"></div></div>
+    <div class="o-cp-right"><div id="cpSearch"></div><div class="o-cp-tools" id="cpTools"></div></div>
+  </div>
+  <main class="o-content" id="content"></main>
+</div>
 
-<main id="main">
-  <!-- ===== sign in ===== -->
-  <section id="login" class="card narrow" hidden>
-    <h1>Staff sign in</h1>
-    <p class="muted">For the Lucas MEA data, product and sales teams.</p>
-    <form id="loginForm">
-      <label>Email<input type="email" id="lEmail" autocomplete="username" required></label>
-      <label>Password<input type="password" id="lPass" autocomplete="current-password" required></label>
-      <button class="btn" type="submit" id="lBtn">Sign in</button>
-      <button class="link" type="button" id="forgot">Forgot password?</button>
-      <p id="lMsg" class="msg" role="status"></p>
-    </form>
-  </section>
-  <section id="setPass" class="card narrow" hidden>
-    <h1>Choose a new password</h1>
-    <form id="setPassForm">
-      <label>New password<input type="password" id="np1" minlength="8" autocomplete="new-password" required></label>
-      <label>Repeat it<input type="password" id="np2" minlength="8" autocomplete="new-password" required></label>
-      <button class="btn" type="submit">Save password</button>
-      <p id="npMsg" class="msg" role="status"></p>
-    </form>
-  </section>
-  <section id="noAccess" class="card narrow" hidden>
-    <h1>No staff access</h1>
-    <p>You're signed in as <b id="naEmail"></b>, but this account isn't on the staff list. Ask the data team to add you.</p>
-    <button class="btn ghost" type="button" id="naOut">Sign out</button>
-  </section>
-
-  <!-- ===== 1. Inquiries ===== -->
-  <section id="tab-inquiries" class="tab" hidden>
-    <div class="toolbar">
-      <h1>Inquiries</h1>
-      <input type="search" id="iqSearch" placeholder="Search inquiry no., company, name or email">
-      <select id="iqSource"><option value="">All sources</option><option>Website</option><option>Email / list</option></select>
-      <select id="iqStatus"><option value="">All statuses</option><option>New</option><option>Quoted</option><option>Won</option><option>Lost</option><option>Closed</option></select>
-      <button type="button" class="btn ghost" id="iqReload">Refresh</button>
-      <button type="button" class="btn editor-only" id="iqNew">New inquiry from a list</button>
-    </div>
-    <p class="muted small">Website requests arrive here automatically. Customers' OE or competitor lists (any length) can be added with <b>New inquiry from a list</b>: every number is matched to a Lucas part and priced.</p>
-    <div class="tablewrap"><table class="grid" id="iqTable"></table></div>
-    <div class="pager" id="iqPager"></div>
-  </section>
-
-  <!-- ===== 2. Number lookup ===== -->
-  <section id="tab-lookup" class="tab" hidden>
-    <div class="toolbar"><h1>Number lookup</h1></div>
-    <div class="cols2 top">
-      <div class="card">
-        <h2>Paste numbers</h2>
-        <p class="muted small">Lucas, OE or competitor numbers, one per line (or separated by commas). A quantity after a tab or semicolon is kept for the inquiry. Up to 10,000 at a time.</p>
-        <textarea id="lkInput" rows="8" placeholder="04C121004E&#10;MANN W 67/1&#10;5215796; 20"></textarea>
-        <div class="row-actions"><button type="button" class="btn" id="lkGo">Look up</button><button type="button" class="link" id="lkClear">Clear</button></div>
-      </div>
-      <div class="card">
-        <h2>Or upload a customer's list</h2>
-        <p class="muted small">Excel (.xlsx) or CSV. The column with the numbers is found by its heading (OE, part number, reference, number…), the quantity column by Qty / Quantity. Without headings, the first column is used.</p>
-        <input type="file" id="lkFile" accept=".xlsx,.csv">
-        <p class="muted small" id="lkFileInfo"></p>
-      </div>
-    </div>
-    <div id="lkResult" hidden>
-      <div class="toolbar">
-        <div class="chips" id="lkChips"></div>
-        <button type="button" class="btn ghost" id="lkXls">Download results (Excel)</button>
-        <button type="button" class="btn editor-only" id="lkToInquiry">Create inquiry from this list</button>
-      </div>
-      <div class="tablewrap"><table class="grid" id="lkTable"></table></div>
-      <p class="muted small" id="lkMore"></p>
-    </div>
-  </section>
-
-  <!-- ===== 3. Parts & prices ===== -->
-  <section id="tab-parts" class="tab" hidden>
-    <div class="toolbar">
-      <h1>Parts &amp; prices</h1>
-      <select id="ptRange" aria-label="Range"></select>
-      <input type="search" id="ptSearch" placeholder="Search part no., description, OE or competitor number">
-      <select id="ptStatus"><option value="Active">Active</option><option value="">All</option><option value="Inactive">Inactive</option></select>
-      <select id="ptPrice"><option value="">All prices</option><option value="with">With FOB price</option><option value="without">Without FOB price</option></select>
-    </div>
-    <div class="toolbar">
-      <span class="chips" id="ptChips"></span>
-      <button type="button" class="btn ghost" id="ptExport">Download range (Excel)</button>
-      <button type="button" class="btn ghost" id="ptCoverage">Price coverage</button>
-      <span class="sep editor-only"></span>
-      <button type="button" class="btn editor-only" id="ptAdd">Add part</button>
-      <button type="button" class="btn ghost editor-only" id="ptImport">Upload parts</button>
-      <button type="button" class="btn ghost editor-only" id="ptPrices">Upload prices</button>
-    </div>
-    <div class="tablewrap"><table class="grid" id="ptTable"></table></div>
-    <div class="pager" id="ptPager"></div>
-  </section>
-
-  <!-- ===== 4. Part numbers ===== -->
-  <section id="tab-partno" class="tab" hidden>
-    <div class="toolbar"><h1>Part number creation</h1><span class="pill New">Numbering rules to be added</span></div>
-    <div class="cols2 top">
-      <div class="card">
-        <h2>New part number</h2>
-        <p class="muted small">Fill in the product, then generate its Lucas part number. The numbering rules will be added by the data team; until then <b>Generate</b> shows what it would use.</p>
-        <div class="form2">
-          <label>Range<select id="pnRange"></select></label>
-          <label>Product type<input id="pnType" placeholder="e.g. Spin-on oil filter"></label>
-          <label>Brand<input id="pnBrand" value="Lucas"></label>
-          <label>Supplier part number<input id="pnSupplier"></label>
-          <label>Origin<input id="pnOrigin" placeholder="e.g. China"></label>
-        </div>
-        <label>Description<input id="pnDesc"></label>
-        <label>OE / reference numbers<textarea id="pnOe" rows="3" placeholder="One per line"></textarea></label>
-        <div class="row-actions"><button type="button" class="btn editor-only" id="pnGen">Generate part number</button></div>
-        <div id="pnOut"></div>
-      </div>
-      <div class="card">
-        <h2>Many at once</h2>
-        <p class="muted small">Upload a list (Excel or CSV) with Range, Product type, Supplier part number, Description and OE numbers. Each row gets a proposed number to review before the parts are created.</p>
-        <input type="file" id="pnFile" accept=".xlsx,.csv" class="editor-only">
-        <div id="pnBulk"></div>
-        <h2 style="margin-top:22px">Current numbering by range</h2>
-        <div class="tablewrap"><table class="grid" id="pnRef"></table></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== 5. Barcodes ===== -->
-  <section id="tab-barcodes" class="tab" hidden>
-    <div class="toolbar"><h1>Barcodes</h1><span class="pill New">Generation rules to be added</span></div>
-    <div class="tablewrap" style="max-height:none"><table class="grid" id="bcCoverage"></table></div>
-    <div class="toolbar" style="margin-top:16px">
-      <select id="bcRange"></select>
-      <select id="bcFilter"><option value="missing">Without barcode</option><option value="has">With barcode</option><option value="">All</option></select>
-      <input type="search" id="bcSearch" placeholder="Search part no. or description">
-      <button type="button" class="btn ghost" id="bcXls">Download list (Excel)</button>
-      <button type="button" class="btn editor-only" id="bcGen" disabled>Generate barcodes for selected</button>
-    </div>
-    <p class="muted small" id="bcInfo"></p>
-    <div class="tablewrap"><table class="grid" id="bcTable"></table></div>
-    <div class="pager" id="bcPager"></div>
-  </section>
-
-  <!-- ===== 6. Inventory ===== -->
-  <section id="tab-inventory" class="tab" hidden>
-    <div class="toolbar">
-      <h1>Inventory</h1>
-      <select id="ivRange"></select>
-      <input type="search" id="ivSearch" placeholder="Search part no. or description">
-      <select id="ivStock"><option value="in">In stock</option><option value="">All parts</option><option value="none">No stock</option></select>
-    </div>
-    <div class="toolbar">
-      <span class="chips" id="ivChips"></span>
-      <button type="button" class="btn ghost" id="ivXls">Download stock (Excel)</button>
-      <button type="button" class="btn ghost editor-only" id="ivTpl">Stock template</button>
-      <button type="button" class="btn editor-only" id="ivUpload">Upload stock</button>
-    </div>
-    <div class="tablewrap"><table class="grid" id="ivTable"></table></div>
-    <div class="pager" id="ivPager"></div>
-  </section>
-</main>
-
-<div id="drawer" class="drawer" hidden>
-  <div class="drawer-in">
-    <button type="button" class="close" id="drawerClose" aria-label="Close">×</button>
-    <div id="drawerBody"></div>
+<!-- dialogs (wizards) -->
+<div id="modal" class="o-modal" hidden>
+  <div class="o-modal-box" role="dialog" aria-modal="true">
+    <header><h2 id="modalTitle"></h2><button type="button" class="close" id="modalClose" aria-label="Close">×</button></header>
+    <div class="o-modal-body" id="modalBody"></div>
   </div>
 </div>
 <div id="toast" class="toast" role="status"></div>
 <input type="file" id="hiddenFile" accept=".xlsx,.csv" hidden>
 
 <script src="/assets/vendor-supabase-2.57.4.min.js"></script>
-<script src="/admin/core.js?v=2"></script>
-<script src="/admin/m-inquiries.js?v=2"></script>
-<script src="/admin/m-lookup.js?v=2"></script>
-<script src="/admin/m-parts.js?v=2"></script>
-<script src="/admin/m-partno.js?v=2"></script>
-<script src="/admin/m-barcodes.js?v=2"></script>
-<script src="/admin/m-inventory.js?v=2"></script>
+<script src="/admin/core.js?v=3"></script>
+<script src="/admin/m-inquiries.js?v=3"></script>
+<script src="/admin/m-lookup.js?v=3"></script>
+<script src="/admin/m-parts.js?v=3"></script>
+<script src="/admin/m-partno.js?v=3"></script>
+<script src="/admin/m-barcodes.js?v=3"></script>
+<script src="/admin/m-inventory.js?v=3"></script>
 <script>LS.start();</script>
 </body>
 </html>
