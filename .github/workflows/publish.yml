@@ -1,0 +1,123 @@
+# Publishes catalogue changes from the Master Data database (Supabase) to the public website.
+# - every 10 minutes: publishes only if someone pressed "Publish to website" in the staff site
+# - every hour: publishes whatever changed (safety net)
+# - by hand: Actions > Publish catalogue from database > Run workflow
+# The job proves who it is to Supabase with GitHub's own identity token, so no password is stored here.
+name: Publish catalogue from database
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # button requests
+    - cron: '5 * * * *'      # hourly
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Who started it'
+        default: manual
+      dry_run:
+        description: 'Only show what would change'
+        type: boolean
+        default: false
+      allow_removals:
+        description: 'Allow removing more than 100 numbers at once'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+  pages: write
+
+concurrency:
+  group: publish-catalogue
+  cancel-in-progress: false
+
+env:
+  FN: https://kyegujgvlsbttyrlibgn.supabase.co/functions/v1/publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Identity token
+        id: tok
+        run: |
+          T=$(curl -sf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=lucasmea-publish" | jq -r .value)
+          [ -n "$T" ] && [ "$T" != "null" ] || { echo "No identity token"; exit 1; }
+          echo "::add-mask::$T"
+          umask 077; printf '%s' "$T" > "$RUNNER_TEMP/tok"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "5 * * * *" ]; then echo "source=hourly" >> "$GITHUB_OUTPUT";
+          elif [ "${{ github.event_name }}" = "schedule" ]; then echo "source=button" >> "$GITHUB_OUTPUT";
+          else echo "source=${{ inputs.source || 'manual' }}" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Anything requested?
+        id: go
+        run: |
+          call() { curl -sS --fail-with-body -X POST "$FN" -H "Authorization: Bearer $(cat "$RUNNER_TEMP/tok")" -H 'Content-Type: application/json' -d "$1"; }
+          if [ "${{ steps.tok.outputs.source }}" = "button" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            P=$(call '{"action":"pending"}' | jq -r .pending)
+            echo "pending: $P"
+            [ "$P" = "true" ] || { echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; }
+          fi
+          echo "run=yes" >> "$GITHUB_OUTPUT"
+          if [ "${{ steps.tok.outputs.source }}" != "hourly" ] && [ "${{ inputs.dry_run }}" != "true" ]; then
+            call '{"action":"report","status":"running","source":"${{ steps.tok.outputs.source }}"}'; echo "reported=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.go.outputs.run == 'yes'
+
+      - name: Read the database and update the pages
+        id: build
+        if: steps.go.outputs.run == 'yes'
+        env:
+          PUBLISH_SUMMARY: ${{ runner.temp }}/summary.json
+        run: |
+          curl -sS --fail-with-body -X POST "$FN" -H "Authorization: Bearer $(cat "$RUNNER_TEMP/tok")" -H 'Content-Type: application/json' \
+            -d '{"action":"snapshot"}' -o "$RUNNER_TEMP/snapshot.json"
+          ls -l "$RUNNER_TEMP/snapshot.json"
+          FLAGS=""
+          [ "${{ inputs.dry_run }}" = "true" ] && FLAGS="$FLAGS --dry"
+          [ "${{ inputs.allow_removals }}" = "true" ] && FLAGS="$FLAGS --allow-removals"
+          set +e; node setup/publish-from-db.js "$RUNNER_TEMP/snapshot.json" $FLAGS; RC=$?; set -e
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+          if [ -n "$(git status --porcelain)" ]; then
+            node setup/build-search-index.js
+            echo "changed=yes" >> "$GITHUB_OUTPUT"
+          fi
+          [ $RC -eq 0 ] || [ $RC -eq 3 ]
+
+      - name: Commit and push
+        id: push
+        if: steps.build.outputs.changed == 'yes'
+        run: |
+          git config user.name "Lucas catalogue publisher"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          N=$(jq -r '"\(.added) added, \(.removed) removed"' "$RUNNER_TEMP/summary.json")
+          git add -A
+          git commit -q -m "Publish from database: $N numbers (${{ steps.tok.outputs.source }})"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || echo "Pages build will start from the push"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Report
+        if: always() && steps.go.outputs.run == 'yes' && inputs.dry_run != true
+        run: |
+          S="${{ job.status }}"; ST=failed
+          if [ "$S" = "success" ]; then
+            if [ "${{ steps.build.outputs.rc }}" = "3" ]; then ST=blocked;
+            elif [ "${{ steps.build.outputs.changed }}" = "yes" ]; then ST=published; else ST=no_changes; fi
+          fi
+          # hourly runs with nothing to publish are not logged
+          if [ "${{ steps.go.outputs.reported }}" != "yes" ]; then
+            [ "$ST" = "no_changes" ] && exit 0
+            curl -sS -X POST "$FN" -H "Authorization: Bearer $(cat "$RUNNER_TEMP/tok")" -H 'Content-Type: application/json' \
+              -d '{"action":"report","status":"running","source":"${{ steps.tok.outputs.source }}"}'
+          fi
+          SUM=$(cat "$RUNNER_TEMP/summary.json" 2>/dev/null || echo null)
+          jq -n --arg st "$ST" --arg sha "${{ steps.push.outputs.sha }}" --argjson sum "$SUM" \
+            '{action:"report", status:$st, sha:(if $sha == "" then null else $sha end), summary:($sum + {run:"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"})}' > "$RUNNER_TEMP/report.json"
+          curl -sS -X POST "$FN" -H "Authorization: Bearer $(cat "$RUNNER_TEMP/tok")" -H 'Content-Type: application/json' -d @"$RUNNER_TEMP/report.json"
