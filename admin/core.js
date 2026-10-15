@@ -174,11 +174,14 @@ window.LS = (function () {
       });
       if (!vals.length) return;
       var q = qi >= 0 ? parseInt(String(r[qi]).replace(/[^\d]/g, ''), 10) : NaN;
-      items.push({ no: vals[0], alts: vals, cols: cn, qty: q > 0 ? q : 1, desc: di >= 0 ? String(r[di] || '').trim() : '' });
+      items.push({ no: vals[0], alts: vals, cols: cn, qty: q > 0 ? q : 1, desc: di >= 0 ? String(r[di] || '').trim() : '', orig: r });
     });
     var info = items.length.toLocaleString() + ' rows read. Numbers taken from ' + (hasHead ? 'column' + (names.length > 1 ? 's ' : ' ') + names.map(function (n) { return '"' + n + '"'; }).join(', ') : 'the first column') +
       (names.length > 1 ? ' (a row is found if any of them matches)' : '') + '; ' + (qi >= 0 ? 'quantities from "' + rows[0][qi] + '".' : 'quantity 1 each (no quantity column found).');
-    return { items: items, info: info };
+    // the customer's own columns are kept so downloads can return their file with the results added
+    var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+    var headers = []; for (var h = 0; h < width; h++) headers.push(hasHead ? String(rows[0][h] == null ? '' : rows[0][h]).trim() || 'Column ' + (h + 1) : 'Column ' + (h + 1));
+    return { items: items, info: info, headers: headers, fileName: file.name };
   };
   // rows with one or several numbers each -> one result line per (row, matched part), plus the number that matched per row
   L.lookupItems = async function (items, onProgress) {
