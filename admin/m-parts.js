@@ -194,31 +194,70 @@
   }
   L.addPartForm = addPart;
 
+  /* Upload parts: one sheet can create new parts and enrich existing ones.
+     Columns: Lucas PN, Range, Description, Status, Brand, Origin, Barcode, Supplier PN, HS code, Notes,
+     OE numbers ("123, 456 (Ford)"), Vehicle makes ("LAND ROVER, AUDI"),
+     "Cross ref: <BRAND>" (one column per brand, several numbers separated by commas or new lines),
+     "Spec: <attribute>" (e.g. "Spec: Height" = "96 mm").
+     Numbers, cross references and makes are only added (never removed); specifications are set. */
+  var SPLIT = /[,;\n]+/;
+  function splitList(s) { return String(s || '').split(SPLIT).map(function (x) { return x.replace(/\s+/g, ' ').trim(); }).filter(Boolean); }
+  function oeOf(s) { var m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(s); return m ? { n: m[1].trim(), b: m[2].trim() } : { n: s, b: null }; }
   async function importParts(f) {
     L.modal('Upload parts', '<p class="muted">Reading ' + esc(f.name) + '…</p>', true);
     try {
-      var raw = await L.readSheet(f), byKey = {}, bad = [];
+      var all = await L.readRows(f); if (all.length < 2) return L.modal('Upload parts', '<p class="flag">The sheet is empty.</p>');
+      var heads = all[0].map(function (h) { return String(h || '').replace(/\s+/g, ' ').trim(); }), norm = heads.map(L.normHead);
+      var specCols = [], xrefCols = [];
+      heads.forEach(function (h, i) {
+        var m = /^spec(?:ification)?\s*[:\-]\s*(.+)$/i.exec(h); if (m) specCols.push({ i: i, attr: m[1].trim() });
+        var x = /^(?:cross\s*ref(?:erence)?s?|xref)\s*[:\-]\s*(.+)$/i.exec(h); if (x) xrefCols.push({ i: i, brand: x[1].trim().toUpperCase() });
+      });
+      var byKey = {}, bad = [];
       L.CATS.forEach(function (c) { byKey[c.subcategory_key.toLowerCase()] = c; byKey[c.name.toLowerCase()] = c; });
-      var rows = raw.map(function (o, i) {
+      var rows = all.slice(1).map(function (r, i) {
+        var o = {}; norm.forEach(function (h, j) { if (h && o[h] == null) o[h] = String(r[j] == null ? '' : r[j]).trim(); });
         var rg = L.pick(o, ['range', 'subcategory', 'category', 'productrange']);
         return { line: i + 2, lucas_pn: L.clean(L.pick(o, L.PN_COLS)), cat: rg ? byKey[rg.toLowerCase()] : null, rangeText: rg, short_desc: L.pick(o, ['description', 'shortdesc', 'desc', 'shortdescription']), status: L.pick(o, ['status']),
           brand: L.pick(o, ['brand']), origin: L.pick(o, ['origin', 'countryoforigin']), barcode: L.pick(o, ['barcode', 'ean']), notes: L.pick(o, ['notes', 'note', 'remarks']),
-          supplier_pn: L.pick(o, ['supplierpn', 'supplierpartnumber']), hs_code: L.pick(o, ['hscode', 'hs']), oe: L.pick(o, ['oenumbers', 'oenumber', 'oe']) };
+          supplier_pn: L.pick(o, ['supplierpn', 'supplierpartnumber']), hs_code: L.pick(o, ['hscode', 'hs']),
+          oe: splitList(L.pick(o, ['oenumbers', 'oenumber', 'oe'])).map(oeOf), makes: splitList(L.pick(o, ['vehiclemakes', 'makes', 'vehiclemake', 'make'])),
+          xref: xrefCols.flatMap(function (c) { return splitList(r[c.i]).map(function (n) { return { n: n, b: c.brand }; }); }),
+          specs: specCols.map(function (c) { return { a: c.attr, v: String(r[c.i] == null ? '' : r[c.i]).replace(/\s+/g, ' ').trim() }; }).filter(function (s) { return s.v; }) };
       }).filter(function (r) { return r.lucas_pn; });
       if (!rows.length) return L.modal('Upload parts', '<p class="flag">No rows with a "Lucas PN" column were found.</p>');
-      var existing = {};
-      for (var ch of L.chunks(rows.map(function (r) { return r.lucas_pn; }), 300)) L.must(await sb.from('products').select('*').in('lucas_pn', ch)).forEach(function (p) { existing[p.lucas_pn] = p; });
+      var pns = rows.map(function (r) { return r.lucas_pn; }), existing = {}, exOe = {}, exX = {}, exMk = {};
+      for (var ch of L.chunks(pns, 200)) {
+        L.must(await sb.from('products').select('*').in('lucas_pn', ch)).forEach(function (p) { existing[p.lucas_pn] = p; });
+        L.must(await sb.from('oe_numbers').select('lucas_pn,oe_number').in('lucas_pn', ch)).forEach(function (x) { exOe[x.lucas_pn + '|' + L.clean(x.oe_number)] = 1; });
+        L.must(await sb.from('competitor_refs').select('lucas_pn,comp_number,comp_brand').in('lucas_pn', ch)).forEach(function (x) { exX[x.lucas_pn + '|' + String(x.comp_brand || '').toUpperCase() + '|' + L.clean(x.comp_number)] = 1; });
+        L.must(await sb.from('applications').select('lucas_pn,make,model').in('lucas_pn', ch)).forEach(function (x) { if (x.make) exMk[x.lucas_pn + '|' + x.make.toUpperCase()] = 1; });
+      }
+      var seen = {};
       rows.forEach(function (r) {
         var ex = existing[r.lucas_pn];
+        if (seen[r.lucas_pn]) bad.push('Row ' + r.line + ': ' + r.lucas_pn + ' appears twice (also row ' + seen[r.lucas_pn] + ')'); seen[r.lucas_pn] = r.line;
         if (r.rangeText && !r.cat) bad.push('Row ' + r.line + ': range "' + r.rangeText + '" is not one of ' + L.CATS.map(function (c) { return c.name; }).join(', '));
         else if (!ex && !r.cat) bad.push('Row ' + r.line + ': ' + r.lucas_pn + ' is new, so it needs a range');
         else if (!ex && !r.short_desc) bad.push('Row ' + r.line + ': ' + r.lucas_pn + ' is new, so it needs a description');
+        if (ex && r.cat && ex.subcategory !== r.cat.subcategory_key) bad.push('Row ' + r.line + ': ' + r.lucas_pn + ' is already in ' + ex.subcategory + ', not ' + r.cat.name);
         if (r.status && !/^(active|inactive)$/i.test(r.status)) bad.push('Row ' + r.line + ': status must be Active or Inactive');
       });
+      // what will be added
+      var addOe = [], addX = [], addMk = [], setSp = [], k = {};
+      rows.forEach(function (r) {
+        r.oe.forEach(function (o) { var key = r.lucas_pn + '|' + L.clean(o.n); if (!L.clean(o.n) || exOe[key] || k[key]) return; k[key] = 1; addOe.push({ lucas_pn: r.lucas_pn, oe_number: o.n, oe_brand: o.b }); });
+        r.xref.forEach(function (x) { var key = r.lucas_pn + '|' + x.b + '|' + L.clean(x.n); if (!L.clean(x.n) || exX[key] || k[key]) return; k[key] = 1; addX.push({ lucas_pn: r.lucas_pn, comp_number: x.n, comp_brand: x.b }); });
+        r.makes.forEach(function (m) { var key = r.lucas_pn + '|' + m.toUpperCase(); if (exMk[key] || k[key]) return; k[key] = 1; addMk.push({ lucas_pn: r.lucas_pn, make: m, source: 'upload' }); });
+        r.specs.forEach(function (s) { setSp.push({ lucas_pn: r.lucas_pn, attribute: s.a, value: s.v }); });
+      });
       var nNew = rows.filter(function (r) { return !existing[r.lucas_pn]; }).length;
-      L.modal('Upload parts', '<p>' + esc(f.name) + ': <b>' + rows.length + '</b> rows: <b>' + nNew + '</b> new parts, <b>' + (rows.length - nNew) + '</b> updates. Blank cells leave the current value unchanged.</p>' +
+      var cols = ['Lucas PN', 'Range', 'Description', 'Status', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes', 'OE numbers', 'Vehicle makes'].concat(xrefCols.map(function (c) { return 'Cross ref: ' + c.brand; }), specCols.map(function (c) { return 'Spec: ' + c.attr; }));
+      L.modal('Upload parts', '<p>' + esc(f.name) + ': <b>' + rows.length + '</b> rows: <b>' + nNew + '</b> new parts, <b>' + (rows.length - nNew) + '</b> existing parts updated. Blank cells leave the current value unchanged.</p>' +
+        '<table class="grid small" style="width:auto;margin:8px 0"><tbody>' +
+        [['OE numbers to add', addOe.length], ['Cross references to add', addX.length], ['Vehicle makes to add', addMk.length], ['Specifications to set', setSp.length]].map(function (x) { return '<tr><td>' + x[0] + '</td><td class="num"><b>' + x[1].toLocaleString() + '</b></td></tr>'; }).join('') + '</tbody></table>' +
         (bad.length ? '<div class="notice bad"><b>Fix these first (' + bad.length + '):</b><ul>' + bad.slice(0, 40).map(function (b) { return '<li>' + esc(b) + '</li>'; }).join('') + '</ul></div>' : '') +
-        '<p class="muted small">Columns read: Lucas PN, Range, Description, Status, Brand, Origin, Barcode, Supplier PN, HS code, Notes, OE numbers (several separated by commas).</p>' +
+        '<p class="muted small">Columns read: ' + cols.map(esc).join(', ') + '. Numbers, cross references and makes are only added, never removed. New parts go on the website at the next publish (Parts &amp; prices → Website).</p>' +
         '<div class="o-footer"><button class="btn" id="impGo"' + (bad.length ? ' disabled' : '') + '>Upload ' + rows.length + ' parts</button><button class="btn ghost" id="impX">Cancel</button></div>', true);
       $('impX').onclick = L.closeModal;
       $('impGo').onclick = async function () {
@@ -227,16 +266,29 @@
           var F = ['short_desc', 'status', 'brand', 'origin', 'barcode', 'notes', 'supplier_pn', 'hs_code'];
           var up = rows.map(function (r) {
             var ex = existing[r.lucas_pn] || {}, o = { lucas_pn: r.lucas_pn, category: r.cat ? r.cat.group_name : ex.category, subcategory: r.cat ? r.cat.subcategory_key : ex.subcategory };
-            F.forEach(function (k) { var v = r[k]; if (k === 'status' && v) v = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(); o[k] = v !== '' ? v : (ex[k] != null ? ex[k] : (k === 'status' ? 'Active' : k === 'brand' ? 'Lucas' : null)); });
+            F.forEach(function (k2) { var v = r[k2]; if (k2 === 'status' && v) v = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(); o[k2] = v !== '' ? v : (ex[k2] != null ? ex[k2] : (k2 === 'status' ? 'Active' : k2 === 'brand' ? 'Lucas' : null)); });
             return o;
           });
           for (var c of L.chunks(up, 500)) L.must(await sb.from('products').upsert(c, { onConflict: 'lucas_pn' }));
-          var oe = []; rows.forEach(function (r) { r.oe.split(/[,;\n]/).map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (n) { oe.push({ lucas_pn: r.lucas_pn, oe_number: n }); }); });
-          for (var c2 of L.chunks(oe, 500)) L.must(await sb.from('oe_numbers').upsert(c2, { onConflict: 'lucas_pn,oe_number', ignoreDuplicates: true }));
-          S.counts = null; L.closeModal(); L.toast('Uploaded ' + rows.length + ' parts' + (oe.length ? ' and ' + oe.length + ' OE numbers' : '')); L.render();
+          for (var c2 of L.chunks(addOe, 500)) L.must(await sb.from('oe_numbers').upsert(c2, { onConflict: 'lucas_pn,oe_number', ignoreDuplicates: true }));
+          for (var c3 of L.chunks(addX, 500)) L.must(await sb.from('competitor_refs').upsert(c3, { onConflict: 'lucas_pn,comp_number,comp_brand', ignoreDuplicates: true }));
+          for (var c4 of L.chunks(setSp, 500)) L.must(await sb.from('product_specs').upsert(c4, { onConflict: 'lucas_pn,attribute' }));
+          for (var c5 of L.chunks(addMk, 500)) L.must(await sb.from('applications').insert(c5));
+          S.counts = null; L.closeModal();
+          L.toast('Uploaded ' + rows.length + ' parts: ' + addOe.length + ' OE, ' + addX.length + ' cross references, ' + setSp.length + ' specifications, ' + addMk.length + ' vehicle makes');
+          L.render();
         } catch (e) { L.fail(e); btn.disabled = false; btn.textContent = 'Try again'; }
       };
     } catch (e) { L.fail(e); }
+  }
+  function partsTemplate() {
+    var head = ['Lucas PN', 'Range', 'Description', 'Status', 'OE numbers', 'Vehicle makes', 'Cross ref: GUD', 'Cross ref: MANN', 'Cross ref: MAHLE', 'Spec: Type', 'Spec: Height', 'Spec: Outer diameter', 'Spec: Inside diameter', 'Spec: Thread', 'Spec: Length', 'Spec: Width', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes'];
+    var ex = ['LFOG0220', 'Oil Filters', 'Spin-on oil filter', 'Active', 'ERR3340 (Land Rover), 9975153', 'LAND ROVER, ROVER', 'Z381', '', '', 'Spin-on oil filter', '96 mm', '93 mm', '', '3/4-16 UNF', '', '', 'Lucas', '', '', '', '', ''];
+    var help = [['Column', 'How to fill it'], ['Lucas PN', 'Required. New number = new part; existing number = the part is updated.'], ['Range', 'Required for new parts: ' + L.CATS.map(function (c) { return c.name; }).join(', ')], ['Description', 'Required for new parts, e.g. "Spin-on oil filter", "Cartridge oil filter", "Panel air filter", "Cabin air filter".'],
+      ['Status', 'Active (shown on the website) or Inactive. Blank = Active for new parts.'], ['OE numbers', 'Several separated by commas or new lines. Add the car brand in brackets if you like: "BK2Q-6714-AA (Ford)".'], ['Vehicle makes', 'Makes the part fits, separated by commas.'],
+      ['Cross ref: BRAND', 'One column per aftermarket brand (add more columns, e.g. "Cross ref: BOSCH"). Several numbers separated by commas.'], ['Spec: NAME', 'One column per specification. Use the names already used in the range (filters: Type, Height, Outer diameter, Inside diameter, Thread, Length, Width, Bypass valve, Inlet connection, Outlet connection) and include the unit: "96 mm", "100 kPa".'],
+      ['Adding only', 'OE numbers, cross references and makes are only added, never removed. Remove them on the part itself.']];
+    L.saveXlsx([{ name: 'Parts', widths: head.map(function (h) { return Math.max(12, h.length + 2); }), head: head, rows: [ex] }, { name: 'How to fill', widths: [18, 110], head: help[0], rows: help.slice(1) }], 'Lucas_parts_upload_template.xlsx').catch(L.fail);
   }
 
   async function uploadPrices(f) {
@@ -380,8 +432,8 @@
     key: 'parts', name: 'Parts & Prices', color: '#1d6fa5',
     icon: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
     menus: [{ label: 'Parts', href: BASE }, { label: 'Price coverage', href: L.href('parts', ['coverage']) }, { label: 'Website', href: L.href('parts', ['publish']) },
-      { label: 'Data', editor: true, children: [{ label: 'New part', action: 'new' }, { label: 'Upload parts', action: 'imp' }, { label: 'Upload prices', action: 'prices' }, { label: 'Price list template', href: L.href('parts', ['coverage']) }, { label: 'Publish to website', action: 'publish' }] }],
-    actions: { new: function () { addPart(); }, imp: function () { L.pickFile(importParts); }, prices: function () { L.pickFile(uploadPrices); }, publish: requestPublish },
+      { label: 'Data', editor: true, children: [{ label: 'New part', action: 'new' }, { label: 'Upload parts', action: 'imp' }, { label: 'Parts upload template', action: 'tpl' }, { label: 'Upload prices', action: 'prices' }, { label: 'Price list template', href: L.href('parts', ['coverage']) }, { label: 'Publish to website', action: 'publish' }] }],
+    actions: { new: function () { addPart(); }, imp: function () { L.pickFile(importParts); }, tpl: partsTemplate, prices: function () { L.pickFile(uploadPrices); }, publish: requestPublish },
     route: function (r) { if (r.parts[0] === 'p' && r.parts[1]) partForm(r.parts[1]); else if (r.parts[0] === 'coverage') coverage(); else if (r.parts[0] === 'publish') publishPage(); else list(r); }
   });
 })(window.LS);

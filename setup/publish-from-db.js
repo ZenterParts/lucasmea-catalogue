@@ -413,7 +413,7 @@ page('filters', Object.keys(FC), {
   typeKey(c, name) { const ty = this.CAT[c].types.find(ty => low(this.typeName(c, ty.k)) === low(name)); return ty ? ty.k : null; },
   size(sp, pat) {   // the short size line shown in lists, e.g. "73 / 66 · M20 x 1.5"
     const g = n => { const s = sp.find(x => low(x[0]) === n); return s ? stripUnit(s[1], 'mm') : ''; };
-    const L = g('length'), W = g('width'), H = g('height'), OD = g('outer diameter'), ID = g('inner diameter'), TH = g('thread');
+    const L = g('length'), W = g('width'), H = g('height'), OD = g('outer diameter'), ID = g('inside diameter') || g('inner diameter'), TH = g('thread');
     const F = { 'L x W x H': L && W && H && `${L} x ${W} x ${H}`, 'H / OD · thread': H && OD && TH && `${H} / ${OD} · ${TH}`, 'H / OD / ID': H && OD && ID && `${H} / ${OD} / ${ID}`, 'H / OD': H && OD && `${H} / ${OD}` };
     if (pat && F[pat]) return [F[pat], pat];
     const k = Object.keys(F).find(k => F[k]); return k ? [F[k], k] : null;
@@ -482,6 +482,7 @@ page('filters', Object.keys(FC), {
       const idx = (list, v) => { v = v || ''; let i = list.indexOf(v); if (i < 0) i = list.findIndex(x => low(x) === low(v)); if (i < 0) { i = list.length; list.push(v); } return i; };
       for (const [k, w] of want) {
         if (groups.has(k)) continue;
+        if (![w.app.model, w.app.variant, w.app.engine_code, w.app.years].some(Boolean)) { notShown('Filter vehicles with only a make (the vehicle table lists models)'); continue; }
         const a = w.app, mkI = idx(D.mk, a.make.toUpperCase()), r = [mkI, idx(D.md, a.model.toUpperCase()), a.variant, a.engine_code, idx(D.fu, a.fuel), a.cc, a.kw, a.years, w.o.join(' '), w.a.join(' '), w.f.join(' '), 0];
         if (w.c.length) r.push(w.c.join(' '));
         let at = -1; D.v.forEach((x, i) => { if (x[0] === mkI) at = i; });
