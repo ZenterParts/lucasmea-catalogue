@@ -104,11 +104,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Report
-        if: always() && steps.go.outputs.run == 'yes' && inputs.dry_run != true
+        if: always() && steps.go.outputs.run == 'yes'
         run: |
           S="${{ job.status }}"; ST=failed
           if [ "$S" = "success" ]; then
-            if [ "${{ steps.build.outputs.rc }}" = "3" ]; then ST=blocked;
+            if [ "${{ inputs.dry_run }}" = "true" ]; then ST=preview;
+            elif [ "${{ steps.build.outputs.rc }}" = "3" ]; then ST=blocked;
             elif [ "${{ steps.build.outputs.changed }}" = "yes" ]; then ST=published; else ST=no_changes; fi
           fi
           # hourly runs with nothing to publish are not logged
