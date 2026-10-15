@@ -308,10 +308,26 @@
     preview: ['Preview', 'Website'], blocked: ['Stopped: check', 'warn'], failed: ['Failed', 'warn'] };
   var pubTimer = null;
   function changeText(c) {
-    var bits = [];
+    var bits = [], v = function (x) { return x && typeof x === 'object' ? Object.keys(x).map(function (k) { return k + ' ' + x[k]; }).join(', ') : String(x == null ? '' : x); };
+    if (c.kind === 'new part') bits.push(esc(c.description || '') + (c.range ? ' <span class="muted">(' + esc(c.range) + ')</span>' : ''));
+    else if (c.kind === 'removed part') bits.push(esc(c.reason || ''));
+    else if (c.to !== undefined) {
+      if (typeof c.to === 'object') {   // specifications: list only what changed
+        var f = c.from || {}, tt = c.to || {}, d = [];
+        Object.keys(tt).forEach(function (k) { if (f[k] !== tt[k]) d.push(esc(k) + ' ' + (f[k] ? '<s class="muted">' + esc(f[k]) + '</s> ' : '') + esc(tt[k])); });
+        Object.keys(f).forEach(function (k) { if (!(k in tt)) d.push(esc(k) + ' <s class="muted">' + esc(f[k]) + '</s> removed'); });
+        bits.push(d.join('; '));
+      } else bits.push((c.from ? '<s class="muted">' + esc(v(c.from)) + '</s> → ' : '') + esc(v(c.to)));
+    }
     if (c.added && c.added.length) bits.push('added ' + c.added.map(esc).join(', '));
-    if (c.removed) bits.push('removed ' + c.removed);
-    return '<span class="mono">' + esc(c.pn) + '</span> ' + esc(c.kind) + ': ' + bits.join('; ');
+    if (c.removed) bits.push('removed ' + c.removed + (c.vehicle ? ' (' + esc(c.vehicle) + ')' : ''));
+    return '<span class="mono">' + esc(c.pn) + '</span> <b>' + esc(c.kind) + '</b>: ' + bits.join('; ');
+  }
+  function summaryLine(sm) {
+    var b = [];
+    if (sm.partsAdded) b.push(sm.partsAdded + ' new'); if (sm.partsRemoved) b.push(sm.partsRemoved + ' removed'); if (sm.partsUpdated) b.push(sm.partsUpdated + ' updated');
+    if (!b.length && (sm.added || sm.removed)) b.push((sm.added || 0) + ' numbers added, ' + (sm.removed || 0) + ' removed');
+    return b.join(', ');
   }
   async function publishPage() {
     clearTimeout(pubTimer);
@@ -322,22 +338,23 @@
       var waiting = rows.find(function (r) { return r.status === 'requested' || r.status === 'running'; });
       var last = rows.find(function (r) { return r.status === 'published'; });
       var intro = '<div class="card"><p>The public catalogue at <a href="https://lucasmeacatalogue.com" target="_blank" rel="noopener">lucasmeacatalogue.com</a> is updated from this database. ' +
-        '<b>OE and cross-reference numbers</b> of parts already on the website are published; new parts, descriptions, specifications and vehicles will follow.</p>' +
+        'Published: <b>new parts</b> (status Active), <b>removed parts</b> (deleted or status changed from Active), <b>descriptions, specifications, vehicles</b>, and <b>OE and cross-reference numbers</b>.</p>' +
         '<p class="muted small">Every hour the website picks up changes automatically. Press <b>Publish to website</b> (data team) to do it now: it starts within about 10 minutes and takes a minute or two.' +
-        ' The Bulbs page only shows Osram, Philips and Hella numbers, and the Horns, Bulbs and Wiper pages have no OE numbers, so those are kept in the database only.</p>' +
+        ' Only what changed in the database is changed on the website; pictures stay as they are, and new parts show "image to follow" until a picture is added.' +
+        ' A few things stay in the database only: OE numbers on the Horns, Bulbs and Wiper pages (they have no OE column), bulb cross references other than Osram, Philips and Hella, and specifications a page has no field for.' +
+        ' If one publish would remove more than 25 parts, 100 numbers or 500 vehicles, it stops and nothing changes.</p>' +
         (waiting ? '<div class="notice">' + L.pill(STATUS[waiting.status][0], STATUS[waiting.status][1]) + ' requested ' + esc(L.dt(waiting.requested_at)) + (waiting.requested_by ? ' by ' + esc(waiting.requested_by) : '') + '. This page refreshes by itself.</div>' : '') +
         (last ? '<p class="small">Last published: <b>' + esc(L.dt(last.finished_at)) + '</b></p>' : '') + '</div>';
       var list = rows.length ? L.listView([
         { label: 'When', render: function (r) { return '<span class="small">' + esc(L.dt(r.finished_at || r.started_at || r.requested_at)) + '</span>'; } },
         { label: 'Started by', render: function (r) { return esc(r.requested_by || (r.source === 'hourly' ? 'Automatic (hourly)' : r.source === 'button' ? 'Publish button' : r.source)); } },
         { label: 'Status', render: function (r) { var s = STATUS[r.status] || [r.status, '']; return L.pill(s[0], s[1]); } },
-        { label: 'Added', num: true, render: function (r) { return r.summary ? L.qty(r.summary.added) : ''; } },
-        { label: 'Removed', num: true, render: function (r) { return r.summary ? L.qty(r.summary.removed) : ''; } },
+        { label: 'Parts', render: function (r) { return r.summary ? '<span class="small">' + esc(summaryLine(r.summary)) + '</span>' : ''; } },
         { label: 'Changes', cls: 'clip', render: function (r) {
           var sm = r.summary || {}, ch = sm.changes || [];
           if (sm.blocked) return '<span class="flag">' + esc(sm.blocked) + '</span>';
           if (!ch.length) return '<span class="muted">' + (r.status === 'requested' || r.status === 'running' ? '' : 'none') + '</span>';
-          return '<details><summary>' + ch.length + ' part' + (ch.length > 1 ? 's' : '') + ': ' + ch.slice(0, 3).map(function (c) { return esc(c.pn); }).join(', ') + (ch.length > 3 ? '…' : '') + '</summary><div class="small">' + ch.map(changeText).join('<br>') + '</div></details>';
+          return '<details><summary>' + ch.length + ' change' + (ch.length > 1 ? 's' : '') + (sm.moreChanges ? ' (+' + sm.moreChanges + ' more)' : '') + ': ' + ch.map(function (c) { return c.pn; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 3).map(esc).join(', ') + (ch.length > 3 ? '…' : '') + '</summary><div class="small">' + ch.map(changeText).join('<br>') + '</div></details>';
         } },
         { label: '', render: function (r) { return r.summary && r.summary.run ? '<a class="small" href="' + esc(r.summary.run) + '" target="_blank" rel="noopener">details</a>' : ''; } }
       ], rows) : L.empty('Nothing published yet', 'The first automatic publish runs within the hour.');
