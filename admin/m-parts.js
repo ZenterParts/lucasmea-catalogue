@@ -58,7 +58,7 @@
   }
 
   // ---------- part form ----------
-  var GEN = [['short_desc', 'Description'], ['long_desc', 'Long description'], ['brand', 'Brand'], ['origin', 'Origin'], ['supplier_pn', 'Supplier PN'], ['zp_pn', 'ZP PN'], ['barcode', 'Barcode'], ['hs_code', 'HS code']];
+  var GEN = [['short_desc', 'Description'], ['long_desc', 'Long description'], ['brand', 'Brand'], ['origin', 'Origin'], ['supplier_pn', 'Supplier PN'], ['zp_pn', 'ZP PN'], ['barcode', 'Barcode'], ['hs_code', 'HS code'], ['source_inquiry', 'Source inquiry']];
   var PRICE = [['fob_usd', 'FOB USD'], ['exw_usd', 'EXW USD'], ['price_list', 'Price list']];
   var COST = [['pct_cons', 'Consolidation %'], ['pct_ship', 'Shipping %'], ['pct_ins', 'Insurance %'], ['pct_port', 'Port %'], ['pct_wh', 'Warehouse %'], ['min_retention', 'Min. retention %'], ['max_discount', 'Max. discount %']];
   var LISTS = {
@@ -87,7 +87,8 @@
         sb.from('competitor_refs').select('*').eq('lucas_pn', pn).order('comp_brand'),
         sb.from('applications').select('*', { count: 'exact' }).eq('lucas_pn', pn).order('make').order('model').limit(500),
         sb.from('spec_bulbs').select('*').eq('lucas_pn', pn).maybeSingle(),
-        sb.from('inventory').select('*').eq('lucas_pn', pn).order('warehouse')
+        sb.from('inventory').select('*').eq('lucas_pn', pn).order('warehouse'),
+        sb.from('part_history').select('*', { count: 'exact' }).eq('lucas_pn', pn).order('at', { ascending: false }).order('id', { ascending: false }).limit(300)
       ]);
       var p = L.must(r[0]);
       if (!p) { L.cp({ crumbs: [['Parts & prices', BASE], [pn]] }); return L.content(L.empty('Part not found', esc(pn) + ' is not in the database.')); }
@@ -113,6 +114,8 @@
         stock.map(function (s) { return '<tr><td>' + esc(s.warehouse) + '</td><td>' + esc(s.bin || '') + '</td><td class="num">' + L.qty(s.qty_on_hand) + '</td><td class="num">' + L.qty(s.qty_reserved) + '</td><td class="num">' + L.qty(s.qty_on_hand - s.qty_reserved) + '</td><td class="small">' + esc(L.dt(s.updated_at)) + '</td></tr>'; }).join('') + '</tbody></table>' :
         '<p class="muted">No stock recorded.</p>' + '<p><a href="' + L.href('inventory', [pn]) + '">Open in Inventory →</a></p>' });
       tabs.push({ key: 'cost', label: 'Cost model', html: '<p class="muted small">Used to calculate Net CIF and RP CIF from the EXW price.</p><div class="o-groups">' + L.group('', COST.map(function (f) { return [f[1], inp('r_' + f[0], pr[f[0]] == null ? '' : Math.round(pr[f[0]] * 10000) / 100, ' inputmode="decimal"')]; })) + '</div>' });
+      var hist = r[9].data || [], histN = r[9].count || hist.length;
+      tabs.push({ key: 'hist', label: 'History <span class="muted">(' + histN + ')</span>', html: (histN > hist.length ? '<p class="muted small">Latest ' + hist.length + ' of ' + histN + ' changes. <a href="' + L.href('parts', ['history'], { q: pn }) + '">See all in the change log →</a></p>' : '') + histTable(hist, false) });
       tabs.push({ key: 'notes', label: 'Notes', html: '<textarea id="p_notes" rows="5"' + (ed ? '' : ' readonly') + '>' + esc(p.notes || '') + '</textarea>' });
 
       L.form({
@@ -122,7 +125,7 @@
         status: { steps: ['Active', 'Inactive'], current: p.status, clickable: ed, onClick: async function (s) {
           if (!confirm((s === 'Inactive' ? 'Deactivate ' : 'Reactivate ') + pn + '?' + (s === 'Inactive' ? ' It stays in the database but is hidden from the catalogue.' : ''))) return;
           try { L.must(await sb.from('products').update({ status: s }).eq('lucas_pn', pn)); L.toast(pn + ' is now ' + s.toLowerCase()); partForm(pn); } catch (e) { L.fail(e); } } },
-        sheet: '<div class="o-title"><h1>' + esc(p.lucas_pn) + '</h1>' + L.pill(p.status) + '</div><div class="o-subtitle">' + esc(p.short_desc) + ' · ' + esc(c.name) + (p.updated_by ? ' · last changed ' + esc(L.dt(p.updated_at)) + ' by ' + esc(p.updated_by) : '') + '</div>' +
+        sheet: '<div class="o-title"><h1>' + esc(p.lucas_pn) + '</h1>' + L.pill(p.status) + '</div><div class="o-subtitle">' + esc(p.short_desc) + ' · ' + esc(c.name) + (p.source_inquiry ? ' · created for inquiry <b>' + esc(p.source_inquiry) + '</b>' : '') + (p.updated_by ? ' · last changed ' + esc(L.dt(p.updated_at)) + ' by ' + esc(p.updated_by) : '') + '</div>' +
           '<div class="o-groups">' + L.group('General', GEN.map(function (f) { return [f[1], inp('p_' + f[0], p[f[0]]) + (f[0] === 'barcode' && ean ? '<div style="margin-top:6px">' + ean + '</div>' : '')]; })) +
           L.group('Price', PRICE.map(function (f) { return [f[1], inp('r_' + f[0], pr[f[0]], f[0] === 'price_list' ? '' : ' inputmode="decimal"')]; }).concat([['Net CIF', L.money(calc.net_cif)], ['RP CIF', L.money(calc.rp_cif)], ['Margin', calc.margin == null ? '' : (calc.margin * 100).toFixed(1) + '%'], ['Available stock', L.qty(avail)]])) + '</div>' +
           L.notebook(tabs, bulb ? 'bulb' : 'specs')
@@ -176,7 +179,7 @@
     var c = prefill.subcategory ? L.cat(prefill.subcategory) : cat();
     L.modal('New part', '<p class="muted">After creating it you can add its price, specifications, OE numbers and vehicles.</p><div class="o-groups">' +
       L.group('', [['Lucas part no.', '<input id="aPn" value="' + esc(prefill.lucas_pn || '') + '" placeholder="e.g. LFOG0200">'], ['Range', '<select id="aRange">' + L.rangeOptions(false, c && c.subcategory_key) + '</select>'], ['Description', '<input id="aDesc" value="' + esc(prefill.short_desc || '') + '">']]) +
-      L.group('', [['Brand', '<input id="aBrand" value="' + esc(prefill.brand || 'Lucas') + '">'], ['Supplier PN', '<input id="aSup" value="' + esc(prefill.supplier_pn || '') + '">'], ['Origin', '<input id="aOrigin" value="' + esc(prefill.origin || '') + '">']]) + '</div>' +
+      L.group('', [['Brand', '<input id="aBrand" value="' + esc(prefill.brand || 'Lucas') + '">'], ['Supplier PN', '<input id="aSup" value="' + esc(prefill.supplier_pn || '') + '">'], ['Origin', '<input id="aOrigin" value="' + esc(prefill.origin || '') + '">'], ['Source inquiry', '<input id="aInq" value="' + esc(prefill.source_inquiry || '') + '" placeholder="e.g. Impala">']]) + '</div>' +
       '<label>OE numbers (one per line)<textarea id="aOe" rows="3">' + esc((prefill.oe || []).join('\n')) + '</textarea></label>' +
       '<div class="o-footer"><button class="btn" id="aSave">Create part</button><button class="btn ghost" id="aCancel">Cancel</button></div>');
     $('aCancel').onclick = L.closeModal;
@@ -185,7 +188,7 @@
       if (!pn || !d) return L.toast('Part number and description are required');
       try {
         if (L.must(await sb.from('products').select('lucas_pn').eq('lucas_pn', pn).maybeSingle())) { L.toast(pn + ' already exists'); L.closeModal(); return L.openPart(pn); }
-        L.must(await sb.from('products').insert({ lucas_pn: pn, category: cc.group_name, subcategory: cc.subcategory_key, short_desc: d, status: 'Active', brand: $('aBrand').value.trim() || 'Lucas', supplier_pn: $('aSup').value.trim() || null, origin: $('aOrigin').value.trim() || null }));
+        L.must(await sb.from('products').insert({ lucas_pn: pn, category: cc.group_name, subcategory: cc.subcategory_key, short_desc: d, status: 'Active', brand: $('aBrand').value.trim() || 'Lucas', supplier_pn: $('aSup').value.trim() || null, origin: $('aOrigin').value.trim() || null, source_inquiry: $('aInq').value.trim() || null }));
         var oe = $('aOe').value.split(/\n/).map(function (s) { return s.trim(); }).filter(Boolean);
         if (oe.length) L.must(await sb.from('oe_numbers').upsert(oe.map(function (n, i) { return { lucas_pn: pn, oe_number: n, is_primary: i === 0 }; }), { onConflict: 'lucas_pn,oe_number', ignoreDuplicates: true }));
         S.counts = null; L.closeModal(); L.toast(pn + ' created'); L.openPart(pn);
@@ -220,7 +223,7 @@
         var rg = L.pick(o, ['range', 'subcategory', 'category', 'productrange']);
         return { line: i + 2, lucas_pn: L.clean(L.pick(o, L.PN_COLS)), cat: rg ? byKey[rg.toLowerCase()] : null, rangeText: rg, short_desc: L.pick(o, ['description', 'shortdesc', 'desc', 'shortdescription']), status: L.pick(o, ['status']),
           brand: L.pick(o, ['brand']), origin: L.pick(o, ['origin', 'countryoforigin']), barcode: L.pick(o, ['barcode', 'ean']), notes: L.pick(o, ['notes', 'note', 'remarks']),
-          supplier_pn: L.pick(o, ['supplierpn', 'supplierpartnumber']), hs_code: L.pick(o, ['hscode', 'hs']),
+          supplier_pn: L.pick(o, ['supplierpn', 'supplierpartnumber']), hs_code: L.pick(o, ['hscode', 'hs']), source_inquiry: L.pick(o, ['sourceinquiry', 'inquiry', 'createdforinquiry', 'forinquiry']),
           oe: splitList(L.pick(o, ['oenumbers', 'oenumber', 'oe'])).map(oeOf), makes: splitList(L.pick(o, ['vehiclemakes', 'makes', 'vehiclemake', 'make'])),
           xref: xrefCols.flatMap(function (c) { return splitList(r[c.i]).map(function (n) { return { n: n, b: c.brand }; }); }),
           specs: specCols.map(function (c) { return { a: c.attr, v: String(r[c.i] == null ? '' : r[c.i]).replace(/\s+/g, ' ').trim() }; }).filter(function (s) { return s.v; }) };
@@ -252,7 +255,7 @@
         r.specs.forEach(function (s) { setSp.push({ lucas_pn: r.lucas_pn, attribute: s.a, value: s.v }); });
       });
       var nNew = rows.filter(function (r) { return !existing[r.lucas_pn]; }).length;
-      var cols = ['Lucas PN', 'Range', 'Description', 'Status', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes', 'OE numbers', 'Vehicle makes'].concat(xrefCols.map(function (c) { return 'Cross ref: ' + c.brand; }), specCols.map(function (c) { return 'Spec: ' + c.attr; }));
+      var cols = ['Lucas PN', 'Range', 'Description', 'Status', 'Source inquiry', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes', 'OE numbers', 'Vehicle makes'].concat(xrefCols.map(function (c) { return 'Cross ref: ' + c.brand; }), specCols.map(function (c) { return 'Spec: ' + c.attr; }));
       L.modal('Upload parts', '<p>' + esc(f.name) + ': <b>' + rows.length + '</b> rows: <b>' + nNew + '</b> new parts, <b>' + (rows.length - nNew) + '</b> existing parts updated. Blank cells leave the current value unchanged.</p>' +
         '<table class="grid small" style="width:auto;margin:8px 0"><tbody>' +
         [['OE numbers to add', addOe.length], ['Cross references to add', addX.length], ['Vehicle makes to add', addMk.length], ['Specifications to set', setSp.length]].map(function (x) { return '<tr><td>' + x[0] + '</td><td class="num"><b>' + x[1].toLocaleString() + '</b></td></tr>'; }).join('') + '</tbody></table>' +
@@ -263,7 +266,7 @@
       $('impGo').onclick = async function () {
         var btn = this; btn.disabled = true; btn.textContent = 'Uploading…';
         try {
-          var F = ['short_desc', 'status', 'brand', 'origin', 'barcode', 'notes', 'supplier_pn', 'hs_code'];
+          var F = ['short_desc', 'status', 'brand', 'origin', 'barcode', 'notes', 'supplier_pn', 'hs_code', 'source_inquiry'];
           var up = rows.map(function (r) {
             var ex = existing[r.lucas_pn] || {}, o = { lucas_pn: r.lucas_pn, category: r.cat ? r.cat.group_name : ex.category, subcategory: r.cat ? r.cat.subcategory_key : ex.subcategory };
             F.forEach(function (k2) { var v = r[k2]; if (k2 === 'status' && v) v = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(); o[k2] = v !== '' ? v : (ex[k2] != null ? ex[k2] : (k2 === 'status' ? 'Active' : k2 === 'brand' ? 'Lucas' : null)); });
@@ -281,12 +284,100 @@
       };
     } catch (e) { L.fail(e); }
   }
+  // ---------- change log (written automatically by the database) ----------
+  var FIELD = { short_desc: 'Description', long_desc: 'Long description', source_inquiry: 'Source inquiry', subcategory: 'Range', category: 'Category', price_list: 'Price list',
+    pct_cons: 'Consolidation %', pct_ship: 'Shipping %', pct_ins: 'Insurance %', pct_port: 'Port %', pct_wh: 'Warehouse %', min_retention: 'Min. retention %', max_discount: 'Max. discount %' };
+  function fieldName(f) { return FIELD[f] || L.label(f || ''); }
+  function whatText(h) {
+    if (h.action === 'created') return '<b>Created</b>' + (h.source_inquiry ? ' for inquiry <b>' + esc(h.source_inquiry) + '</b>' : '');
+    if (h.action === 'deleted') return '<b>Deleted</b> the part';
+    if (h.action === 'changed') return 'Changed <b>' + esc(h.area === 'part' ? fieldName(h.field) : h.area === 'price' ? fieldName(h.field) : (h.area + (h.field ? ' ' + h.field : ''))) + '</b>';
+    return (h.action === 'added' ? 'Added ' : 'Removed ') + esc(h.area) + (h.field ? ' <b>' + esc(h.field) + '</b>' : '');
+  }
+  function histTable(rows, withPn) {
+    if (!rows.length) return '<p class="muted">No changes recorded yet.</p>';
+    return '<div class="o-list"><table class="grid compact"><thead><tr><th>When</th>' + (withPn ? '<th>Part</th>' : '') + '<th>Who</th><th>What</th><th>Before</th><th>After</th></tr></thead><tbody>' +
+      rows.map(function (h) {
+        return '<tr><td class="small" style="white-space:nowrap">' + esc(L.dt(h.at)) + '</td>' + (withPn ? '<td><a class="mono" href="' + L.href('parts', ['p', h.lucas_pn]) + '">' + esc(h.lucas_pn) + '</a></td>' : '') +
+          '<td class="small">' + esc(h.by_email || '') + '</td><td>' + whatText(h) + '</td><td class="clip"><s class="muted">' + esc(h.old_value || '') + '</s></td><td class="clip">' + esc(h.new_value || '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  var HS = L.state.history = { text: '', active: {}, offset: 0 };
+  var HFILT = [
+    { key: 'a_part', label: 'Parts created / changed', group: 'What' }, { key: 'a_price', label: 'Prices', group: 'What' }, { key: 'a_oe', label: 'OE numbers', group: 'What' },
+    { key: 'a_comp', label: 'Cross references', group: 'What' }, { key: 'a_spec', label: 'Specifications', group: 'What' }, { key: 'a_veh', label: 'Vehicles', group: 'What' },
+    { key: 'd_1', label: 'Today', group: 'When', single: true }, { key: 'd_7', label: 'Last 7 days', group: 'When', single: true }, { key: 'd_30', label: 'Last 30 days', group: 'When', single: true },
+    { key: 'x_created', label: 'New parts only', group: 'Kind', single: true }
+  ];
+  var AREA = { a_part: 'part', a_price: 'price', a_oe: 'OE number', a_comp: 'cross reference', a_spec: 'specification', a_veh: 'vehicle' };
+  function histQuery(opts) {
+    var q = sb.from('part_history').select('*', opts), A = HS.active;
+    var areas = Object.keys(AREA).filter(function (k) { return A[k]; }).map(function (k) { return AREA[k]; });
+    if (A.a_spec) areas.push('bulb data');
+    if (areas.length) q = q.in('area', areas);
+    var days = A.d_1 ? 1 : A.d_7 ? 7 : A.d_30 ? 30 : 0;
+    if (days) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - days + 1); q = q.gte('at', d.toISOString()); }
+    if (A.x_created) q = q.eq('action', 'created');
+    var s = L.orSearch(['lucas_pn', 'by_email', 'source_inquiry', 'old_value', 'new_value', 'field'], HS.text); if (s) q = q.or(s);
+    return q.order('at', { ascending: false }).order('id', { ascending: false });
+  }
+  function historyPage(r) {
+    if (r.q.q != null) { HS.text = r.q.q; HS.offset = 0; }
+    L.cp({ crumbs: [['Parts & prices', BASE], ['Change log']], buttons: '<button type="button" class="btn ghost" id="hXls">Download</button>' });
+    L.searchBar({ placeholder: 'Search part no., person, inquiry or value…', text: HS.text, filters: HFILT, active: HS.active, onChange: function (s) { HS.text = s.text; HS.active = s.active; HS.offset = 0; load(); } });
+    L.content('<p class="muted small">Every change to a part is recorded here automatically: who made it, when, and what it was before and after. This includes new parts (with the inquiry they were created for), edits, OE numbers, cross references, specifications, vehicles and prices.</p><div id="hList"></div>');
+    $('hXls').onclick = async function () {
+      try {
+        L.toast('Preparing…');
+        var rows = L.must(await histQuery().limit(10000));
+        await L.saveXlsx([{ name: 'Change log', widths: [18, 12, 30, 10, 18, 22, 40, 40, 16], head: ['When', 'Lucas PN', 'Who', 'Action', 'Area', 'Field', 'Before', 'After', 'Source inquiry'],
+          rows: rows.map(function (h) { return [L.dt(h.at), h.lucas_pn, h.by_email || '', h.action, h.area, h.field ? fieldName(h.field) : '', h.old_value || '', h.new_value || '', h.source_inquiry || '']; }) }], 'Lucas_change_log_' + L.today() + '.xlsx');
+      } catch (e) { L.fail(e); }
+    };
+    async function load() {
+      try {
+        var res = await histQuery({ count: 'exact' }).range(HS.offset, HS.offset + L.PAGE - 1), rows = L.must(res);
+        L.pager(HS.offset, res.count || 0, function (o) { HS.offset = o; load(); });
+        $('hList').innerHTML = histTable(rows, true);
+      } catch (e) { L.fail(e); }
+    }
+    load();
+  }
+
+  // ---------- parts by inquiry ----------
+  async function inquiryPage(r) {
+    var name = r.q.name;
+    L.cp({ crumbs: name ? [['Parts & prices', BASE], ['Parts by inquiry', L.href('parts', ['inquiries'])], [name]] : [['Parts & prices', BASE], ['Parts by inquiry']],
+      buttons: name ? '<button type="button" class="btn ghost" id="iqXls">Download</button>' : '' });
+    try {
+      var rows = await L.fetchAll(function () { var q = sb.from('products').select('lucas_pn,subcategory,short_desc,status,source_inquiry,created_at,updated_by').not('source_inquiry', 'is', null); if (name) q = q.eq('source_inquiry', name); return q.order('lucas_pn'); });
+      if (!name) {
+        var by = {}; rows.forEach(function (p) { var b = by[p.source_inquiry] = by[p.source_inquiry] || { name: p.source_inquiry, n: 0, ranges: {}, first: p.created_at }; b.n++; b.ranges[p.subcategory] = (b.ranges[p.subcategory] || 0) + 1; if (p.created_at < b.first) b.first = p.created_at; });
+        var list = Object.values(by).sort(function (a, b) { return b.first < a.first ? -1 : 1; });
+        L.content('<p class="muted small">Parts created for a customer inquiry. Set it with "Source inquiry" on the part, in New part, or as a column in Upload parts.</p>' + (list.length ? L.listView([
+          { label: 'Inquiry', render: function (x) { return '<b>' + esc(x.name) + '</b>'; } }, { label: 'Parts', num: true, render: function (x) { return L.qty(x.n); } },
+          { label: 'Ranges', render: function (x) { return esc(Object.keys(x.ranges).map(function (k) { return k + ' ' + x.ranges[k]; }).join(', ')); } },
+          { label: 'Created', render: function (x) { return '<span class="small">' + esc(L.dt(x.first)) + '</span>'; } }
+        ], list, function (x) { return L.href('parts', ['inquiries'], { name: x.name }); }) : L.empty('No inquiries yet', 'Parts get an inquiry when "Source inquiry" is filled in.')));
+        return;
+      }
+      L.content(L.listView([
+        { label: 'Lucas PN', cls: 'pn', render: function (p) { return esc(p.lucas_pn); } }, { label: 'Range', render: function (p) { return esc(p.subcategory); } },
+        { label: 'Description', cls: 'clip', render: function (p) { return esc(p.short_desc); } }, { label: 'Status', render: function (p) { return L.pill(p.status); } },
+        { label: 'Created', render: function (p) { return '<span class="small">' + esc(L.dt(p.created_at)) + '</span>'; } }, { label: 'Last changed by', render: function (p) { return '<span class="small">' + esc(p.updated_by || '') + '</span>'; } }
+      ], rows, function (p) { return L.href('parts', ['p', p.lucas_pn]); }) + '<p class="small"><a href="' + L.href('parts', ['history'], { q: name }) + '">See the change log for ' + esc(name) + ' →</a></p>');
+      $('iqXls').onclick = function () {
+        L.saveXlsx([{ name: name.slice(0, 30), widths: [12, 14, 40, 10, 18, 28], head: ['Lucas PN', 'Range', 'Description', 'Status', 'Created', 'Last changed by'], rows: rows.map(function (p) { return [p.lucas_pn, p.subcategory, p.short_desc, p.status, L.dt(p.created_at), p.updated_by || '']; }) }], 'Lucas_parts_' + name.replace(/[^A-Za-z0-9]+/g, '_') + '.xlsx').catch(L.fail);
+      };
+    } catch (e) { L.fail(e); }
+  }
+
   L.importParts = importParts;   // also used by Part numbers → Many at once when the sheet already has Lucas PNs
   function partsTemplate() {
-    var head = ['Lucas PN', 'Range', 'Description', 'Status', 'OE numbers', 'Vehicle makes', 'Cross ref: GUD', 'Cross ref: MANN', 'Cross ref: MAHLE', 'Spec: Type', 'Spec: Height', 'Spec: Outer diameter', 'Spec: Inside diameter', 'Spec: Thread', 'Spec: Length', 'Spec: Width', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes'];
-    var ex = ['LFOG0220', 'Oil Filters', 'Spin-on oil filter', 'Active', 'ERR3340 (Land Rover), 9975153', 'LAND ROVER, ROVER', 'Z381', '', '', 'Spin-on oil filter', '96 mm', '93 mm', '', '3/4-16 UNF', '', '', 'Lucas', '', '', '', '', ''];
+    var head = ['Lucas PN', 'Range', 'Description', 'Status', 'Source inquiry', 'OE numbers', 'Vehicle makes', 'Cross ref: GUD', 'Cross ref: MANN', 'Cross ref: MAHLE', 'Spec: Type', 'Spec: Height', 'Spec: Outer diameter', 'Spec: Inside diameter', 'Spec: Thread', 'Spec: Length', 'Spec: Width', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes'];
+    var ex = ['LFOG0220', 'Oil Filters', 'Spin-on oil filter', 'Active', 'Impala', 'ERR3340 (Land Rover), 9975153', 'LAND ROVER, ROVER', 'Z381', '', '', 'Spin-on oil filter', '96 mm', '93 mm', '', '3/4-16 UNF', '', '', 'Lucas', '', '', '', '', ''];
     var help = [['Column', 'How to fill it'], ['Lucas PN', 'Required. New number = new part; existing number = the part is updated.'], ['Range', 'Required for new parts: ' + L.CATS.map(function (c) { return c.name; }).join(', ')], ['Description', 'Required for new parts, e.g. "Spin-on oil filter", "Cartridge oil filter", "Panel air filter", "Cabin air filter".'],
-      ['Status', 'Active (shown on the website) or Inactive. Blank = Active for new parts.'], ['OE numbers', 'Several separated by commas or new lines. Add the car brand in brackets if you like: "BK2Q-6714-AA (Ford)".'], ['Vehicle makes', 'Makes the part fits, separated by commas.'],
+      ['Status', 'Active (shown on the website) or Inactive. Blank = Active for new parts.'], ['Source inquiry', 'The customer inquiry the part was created for, e.g. "Impala". Shown on the part and under Parts by inquiry.'], ['OE numbers', 'Several separated by commas or new lines. Add the car brand in brackets if you like: "BK2Q-6714-AA (Ford)".'], ['Vehicle makes', 'Makes the part fits, separated by commas.'],
       ['Cross ref: BRAND', 'One column per aftermarket brand (add more columns, e.g. "Cross ref: BOSCH"). Several numbers separated by commas.'], ['Spec: NAME', 'One column per specification. Use the names already used in the range (filters: Type, Height, Outer diameter, Inside diameter, Thread, Length, Width, Bypass valve, Inlet connection, Outlet connection) and include the unit: "96 mm", "100 kPa".'],
       ['Adding only', 'OE numbers, cross references and makes are only added, never removed. Remove them on the part itself.']];
     L.saveXlsx([{ name: 'Parts', widths: head.map(function (h) { return Math.max(12, h.length + 2); }), head: head, rows: [ex] }, { name: 'How to fill', widths: [18, 110], head: help[0], rows: help.slice(1) }], 'Lucas_parts_upload_template.xlsx').catch(L.fail);
@@ -433,8 +524,9 @@
     key: 'parts', name: 'Parts & Prices', color: '#1d6fa5',
     icon: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
     menus: [{ label: 'Parts', href: BASE }, { label: 'Price coverage', href: L.href('parts', ['coverage']) }, { label: 'Website', href: L.href('parts', ['publish']) },
+      { label: 'History', children: [{ label: 'Change log', href: L.href('parts', ['history']) }, { label: 'Parts by inquiry', href: L.href('parts', ['inquiries']) }] },
       { label: 'Data', editor: true, children: [{ label: 'New part', action: 'new' }, { label: 'Upload parts', action: 'imp' }, { label: 'Parts upload template', action: 'tpl' }, { label: 'Upload prices', action: 'prices' }, { label: 'Price list template', href: L.href('parts', ['coverage']) }, { label: 'Publish to website', action: 'publish' }] }],
     actions: { new: function () { addPart(); }, imp: function () { L.pickFile(importParts); }, tpl: partsTemplate, prices: function () { L.pickFile(uploadPrices); }, publish: requestPublish },
-    route: function (r) { if (r.parts[0] === 'p' && r.parts[1]) partForm(r.parts[1]); else if (r.parts[0] === 'coverage') coverage(); else if (r.parts[0] === 'publish') publishPage(); else list(r); }
+    route: function (r) { if (r.parts[0] === 'p' && r.parts[1]) partForm(r.parts[1]); else if (r.parts[0] === 'coverage') coverage(); else if (r.parts[0] === 'publish') publishPage(); else if (r.parts[0] === 'history') historyPage(r); else if (r.parts[0] === 'inquiries') inquiryPage(r); else list(r); }
   });
 })(window.LS);
