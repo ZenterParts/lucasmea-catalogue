@@ -66,8 +66,12 @@ Deno.serve(async (req) => {
       const { data, error } = await svc.rpc("publish_pending", { p_key: "" }); if (error) throw error;
       return json(req, { pending: data });
     }
-    if (action === "snapshot") {
-      const { data, error } = await svc.rpc("publish_snapshot", { p_key: "" }); if (error) throw error;
+    if (action === "snapshot") {   // part "core" (parts, numbers, specs) or "apps" (vehicles); no part = numbers only (older job)
+      const part = String(body.part || "");
+      const { data, error } = part
+        ? await svc.rpc("publish_snapshot2", { p_key: "", p_part: part })
+        : await svc.rpc("publish_snapshot", { p_key: "" });
+      if (error) throw error;
       return json(req, data);
     }
     if (action === "report") {

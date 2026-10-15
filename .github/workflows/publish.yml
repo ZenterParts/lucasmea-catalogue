@@ -74,13 +74,15 @@ jobs:
         env:
           PUBLISH_SUMMARY: ${{ runner.temp }}/summary.json
         run: |
-          curl -sS --fail-with-body -X POST "$FN" -H "Authorization: Bearer $(cat "$RUNNER_TEMP/tok")" -H 'Content-Type: application/json' \
-            -d '{"action":"snapshot"}' -o "$RUNNER_TEMP/snapshot.json"
-          ls -l "$RUNNER_TEMP/snapshot.json"
+          for part in core apps; do
+            curl -sS --fail-with-body -X POST "$FN" -H "Authorization: Bearer $(cat "$RUNNER_TEMP/tok")" -H 'Content-Type: application/json' \
+              -d "{\"action\":\"snapshot\",\"part\":\"$part\"}" -o "$RUNNER_TEMP/$part.json"
+          done
+          ls -l "$RUNNER_TEMP"/core.json "$RUNNER_TEMP"/apps.json
           FLAGS=""
           [ "${{ inputs.dry_run }}" = "true" ] && FLAGS="$FLAGS --dry"
           [ "${{ inputs.allow_removals }}" = "true" ] && FLAGS="$FLAGS --allow-removals"
-          set +e; node setup/publish-from-db.js "$RUNNER_TEMP/snapshot.json" $FLAGS; RC=$?; set -e
+          set +e; node setup/publish-from-db.js "$RUNNER_TEMP/core.json" "$RUNNER_TEMP/apps.json" $FLAGS; RC=$?; set -e
           echo "rc=$RC" >> "$GITHUB_OUTPUT"
           if [ -n "$(git status --porcelain)" ]; then
             node setup/build-search-index.js
@@ -95,9 +97,9 @@ jobs:
           git config user.name "Lucas catalogue publisher"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           SRC="${{ steps.tok.outputs.source }}"
-          N=$(jq -r '"\(.added) added, \(.removed) removed"' "$RUNNER_TEMP/summary.json")
+          N=$(jq -r '[(if .partsAdded > 0 then "\(.partsAdded) new parts" else empty end), (if .partsRemoved > 0 then "\(.partsRemoved) parts removed" else empty end), (if .partsUpdated > 0 then "\(.partsUpdated) parts updated" else empty end)] | join(", ")' "$RUNNER_TEMP/summary.json")
           git add -A
-          git commit -q -m "Publish from database ($SRC): numbers $N"
+          git commit -q -m "Publish from database ($SRC): ${N:-page counts}"
           for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || echo "Pages build will start from the push"
