@@ -281,6 +281,7 @@
       };
     } catch (e) { L.fail(e); }
   }
+  L.importParts = importParts;   // also used by Part numbers → Many at once when the sheet already has Lucas PNs
   function partsTemplate() {
     var head = ['Lucas PN', 'Range', 'Description', 'Status', 'OE numbers', 'Vehicle makes', 'Cross ref: GUD', 'Cross ref: MANN', 'Cross ref: MAHLE', 'Spec: Type', 'Spec: Height', 'Spec: Outer diameter', 'Spec: Inside diameter', 'Spec: Thread', 'Spec: Length', 'Spec: Width', 'Brand', 'Origin', 'Barcode', 'Supplier PN', 'HS code', 'Notes'];
     var ex = ['LFOG0220', 'Oil Filters', 'Spin-on oil filter', 'Active', 'ERR3340 (Land Rover), 9975153', 'LAND ROVER, ROVER', 'Z381', '', '', 'Spin-on oil filter', '96 mm', '93 mm', '', '3/4-16 UNF', '', '', 'Lucas', '', '', '', '', ''];

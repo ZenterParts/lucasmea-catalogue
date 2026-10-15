@@ -56,6 +56,13 @@
       L.pickFile(async function (f) {
         try {
           var raw = await L.readSheet(f), byKey = {};
+          var withPn = raw.filter(function (o) { return L.clean(L.pick(o, L.PN_COLS)); }).length;
+          if (withPn && L.importParts) {   // the sheet already has Lucas part numbers: it is an upload, not a numbering request
+            $('pbOut').innerHTML = '<div class="notice"><b>' + esc(f.name) + ' already has Lucas part numbers</b> in ' + withPn + ' rows, so there is nothing to number here. ' +
+              'To create these parts with their OE numbers, cross references, specifications and makes, upload it to the database.</div><div class="o-footer"><button class="btn editor-only" id="pbToUpload">Upload these parts</button></div>';
+            $('pbToUpload').onclick = function () { L.importParts(f); };
+            return;
+          }
           L.CATS.forEach(function (c) { byKey[c.subcategory_key.toLowerCase()] = c; byKey[c.name.toLowerCase()] = c; });
           var rows = raw.map(function (o) {
             var c = byKey[(L.pick(o, ['range', 'subcategory', 'category']) || '').toLowerCase()];
