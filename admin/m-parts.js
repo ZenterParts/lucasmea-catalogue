@@ -303,12 +303,68 @@
     } catch (e) { L.fail(e); }
   }
 
+  // ---------- website publishing ----------
+  var STATUS = { requested: ['Waiting', 'New'], running: ['Publishing…', 'Quoted'], published: ['Published', 'Won'], no_changes: ['Nothing to change', 'Closed'],
+    preview: ['Preview', 'Website'], blocked: ['Stopped: check', 'warn'], failed: ['Failed', 'warn'] };
+  var pubTimer = null;
+  function changeText(c) {
+    var bits = [];
+    if (c.added && c.added.length) bits.push('added ' + c.added.map(esc).join(', '));
+    if (c.removed) bits.push('removed ' + c.removed);
+    return '<span class="mono">' + esc(c.pn) + '</span> ' + esc(c.kind) + ': ' + bits.join('; ');
+  }
+  async function publishPage() {
+    clearTimeout(pubTimer);
+    L.cp({ crumbs: [['Parts & prices', BASE], ['Website publishing']], buttons: '<button type="button" class="btn editor-only" id="pubGo">Publish to website</button>' });
+    $('pubGo').onclick = requestPublish;
+    try {
+      var rows = L.must(await sb.from('publish_log').select('*').order('id', { ascending: false }).limit(50));
+      var waiting = rows.find(function (r) { return r.status === 'requested' || r.status === 'running'; });
+      var last = rows.find(function (r) { return r.status === 'published'; });
+      var intro = '<div class="card"><p>The public catalogue at <a href="https://lucasmeacatalogue.com" target="_blank" rel="noopener">lucasmeacatalogue.com</a> is updated from this database. ' +
+        '<b>OE and cross-reference numbers</b> of parts already on the website are published; new parts, descriptions, specifications and vehicles will follow.</p>' +
+        '<p class="muted small">Every hour the website picks up changes automatically. Press <b>Publish to website</b> (data team) to do it now: it starts within about 10 minutes and takes a minute or two.' +
+        ' The Bulbs page only shows Osram, Philips and Hella numbers, and the Horns, Bulbs and Wiper pages have no OE numbers, so those are kept in the database only.</p>' +
+        (waiting ? '<div class="notice">' + L.pill(STATUS[waiting.status][0], STATUS[waiting.status][1]) + ' requested ' + esc(L.dt(waiting.requested_at)) + (waiting.requested_by ? ' by ' + esc(waiting.requested_by) : '') + '. This page refreshes by itself.</div>' : '') +
+        (last ? '<p class="small">Last published: <b>' + esc(L.dt(last.finished_at)) + '</b></p>' : '') + '</div>';
+      var list = rows.length ? L.listView([
+        { label: 'When', render: function (r) { return '<span class="small">' + esc(L.dt(r.finished_at || r.started_at || r.requested_at)) + '</span>'; } },
+        { label: 'Started by', render: function (r) { return esc(r.requested_by || (r.source === 'hourly' ? 'Automatic (hourly)' : r.source === 'button' ? 'Publish button' : r.source)); } },
+        { label: 'Status', render: function (r) { var s = STATUS[r.status] || [r.status, '']; return L.pill(s[0], s[1]); } },
+        { label: 'Added', num: true, render: function (r) { return r.summary ? L.qty(r.summary.added) : ''; } },
+        { label: 'Removed', num: true, render: function (r) { return r.summary ? L.qty(r.summary.removed) : ''; } },
+        { label: 'Changes', cls: 'clip', render: function (r) {
+          var sm = r.summary || {}, ch = sm.changes || [];
+          if (sm.blocked) return '<span class="flag">' + esc(sm.blocked) + '</span>';
+          if (!ch.length) return '<span class="muted">' + (r.status === 'requested' || r.status === 'running' ? '' : 'none') + '</span>';
+          return '<details><summary>' + ch.length + ' part' + (ch.length > 1 ? 's' : '') + ': ' + ch.slice(0, 3).map(function (c) { return esc(c.pn); }).join(', ') + (ch.length > 3 ? '…' : '') + '</summary><div class="small">' + ch.map(changeText).join('<br>') + '</div></details>';
+        } },
+        { label: '', render: function (r) { return r.summary && r.summary.run ? '<a class="small" href="' + esc(r.summary.run) + '" target="_blank" rel="noopener">details</a>' : ''; } }
+      ], rows) : L.empty('Nothing published yet', 'The first automatic publish runs within the hour.');
+      L.content(intro + list);
+      if (waiting) pubTimer = setTimeout(function () { if (/publish/.test(location.hash)) publishPage(); }, 20000);
+    } catch (e) { L.fail(e); }
+  }
+  async function requestPublish() {
+    var b = $('pubGo'); if (b) { b.disabled = true; b.textContent = 'Requesting…'; }
+    try {
+      var res = await sb.functions.invoke('publish', { body: { action: 'request' } });
+      if (res.error) {
+        var msg = res.error.message;
+        try { var j = await res.error.context.json(); if (j && j.error) msg = j.error; } catch (e2) { /* keep message */ }
+        throw new Error(msg);
+      }
+      L.toast(res.data && res.data.dispatched ? 'Publishing now. The website updates in a minute or two.' : 'Publish requested. The website updates within about 10 minutes.');
+      L.go(L.href('parts', ['publish']));
+    } catch (e) { L.fail(e); if (b) { b.disabled = false; b.textContent = 'Publish to website'; } }
+  }
+
   L.register({
     key: 'parts', name: 'Parts & Prices', color: '#1d6fa5',
     icon: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
-    menus: [{ label: 'Parts', href: BASE }, { label: 'Price coverage', href: L.href('parts', ['coverage']) },
-      { label: 'Data', editor: true, children: [{ label: 'New part', action: 'new' }, { label: 'Upload parts', action: 'imp' }, { label: 'Upload prices', action: 'prices' }, { label: 'Price list template', href: L.href('parts', ['coverage']) }] }],
-    actions: { new: function () { addPart(); }, imp: function () { L.pickFile(importParts); }, prices: function () { L.pickFile(uploadPrices); } },
-    route: function (r) { if (r.parts[0] === 'p' && r.parts[1]) partForm(r.parts[1]); else if (r.parts[0] === 'coverage') coverage(); else list(r); }
+    menus: [{ label: 'Parts', href: BASE }, { label: 'Price coverage', href: L.href('parts', ['coverage']) }, { label: 'Website', href: L.href('parts', ['publish']) },
+      { label: 'Data', editor: true, children: [{ label: 'New part', action: 'new' }, { label: 'Upload parts', action: 'imp' }, { label: 'Upload prices', action: 'prices' }, { label: 'Price list template', href: L.href('parts', ['coverage']) }, { label: 'Publish to website', action: 'publish' }] }],
+    actions: { new: function () { addPart(); }, imp: function () { L.pickFile(importParts); }, prices: function () { L.pickFile(uploadPrices); }, publish: requestPublish },
+    route: function (r) { if (r.parts[0] === 'p' && r.parts[1]) partForm(r.parts[1]); else if (r.parts[0] === 'coverage') coverage(); else if (r.parts[0] === 'publish') publishPage(); else list(r); }
   });
 })(window.LS);
