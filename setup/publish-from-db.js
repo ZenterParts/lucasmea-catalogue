@@ -105,17 +105,18 @@ function setField(page, p, pn, field, dbVal, what) {
 }
 // specification maps (key -> value on the page; label + unit in the database). Labels the page has no field for are left out.
 function specsSync(page, p, pn, db, LAB, toKey, skip) {
+  // only fields the page knows are compared; other page values (e.g. internal flags) are kept as they are
   const s = p.s || {};
-  const pageMap = {}; for (const [k, v] of Object.entries(s)) { const [l, u] = LAB[k] || [k]; if (t(v) && !(l in pageMap)) pageMap[l] = withUnit(v, u); }
+  const pageMap = {}; for (const [k, v] of Object.entries(s)) { if (!LAB[k]) continue; const [l, u] = LAB[k]; if (t(v) && !(l in pageMap)) pageMap[l] = withUnit(v, u); }
   const dbMap = {};
   for (const [a, v] of db.specs) {
     if (skip.includes(a)) continue;
-    if (!LAB[toKey(a)] && !(a in pageMap)) { notShown('Specifications the page has no field for (kept in the database)'); continue; }
+    if (!LAB[toKey(a)]) { notShown('Specifications the page has no field for (kept in the database)'); continue; }
     dbMap[a] = v;
   }
   if (same(Object.entries(pageMap).sort(), Object.entries(dbMap).sort())) return false;
   const out = {};
-  for (const k of Object.keys(s)) { const [l, u] = LAB[k] || [k]; if (l in dbMap) out[k] = stripUnit(dbMap[l], u); }
+  for (const k of Object.keys(s)) { if (!LAB[k]) { out[k] = s[k]; continue; } const [l, u] = LAB[k]; if (l in dbMap) out[k] = stripUnit(dbMap[l], u); }
   for (const [a, v] of Object.entries(dbMap)) { const k = toKey(a); if (!(k in out)) out[k] = stripUnit(v, (LAB[k] || [])[1]); }
   log(page, pn, 'specifications', { from: pageMap, to: dbMap });
   p.s = out; return true;
@@ -203,6 +204,7 @@ page('water-pumps', ['Water Pumps'], {
     const data = pg.read('DATA'), M = pg.read('MLAB'), E = pg.read('ELAB');
     this.LAB = {}; for (const [k, l, u] of M.concat(E)) if (!this.LAB[k]) this.LAB[k] = [l, u];
     this.toKey = {}; for (const [k, l] of M.concat(E)) if (!this.toKey[l]) this.toKey[l] = k;
+    if (!this.LAB.mode) { this.LAB.mode = ['Mode']; this.toKey.Mode = 'mode'; }   // stored as "Mode" in the database
     return data;
   },
   pn: d => d.l,
@@ -307,7 +309,7 @@ page('bulbs', ['Bulbs'], {
   },
   fields(b, pn, db) {
     if (!db.bulb) return;
-    const x = db.bulb, typ = this.TYPES.find(ty => low(ty) === low(x.type)) || title(x.type);
+    const x = db.bulb, typ = this.TYPES.find(ty => low(ty) === low(x.type)) || this.TYPES.find(ty => low(ty).startsWith(low(x.type) + ' ')) || title(x.type);
     const F = { type: typ, item: x.item, rng: x.rng, v: x.v, w: x.w, base: x.base, k: x.k == null ? '' : String(x.k), ece: x.ece };
     for (const [f, v] of Object.entries(F)) {
       if (low(v) === low(b[f])) continue;
