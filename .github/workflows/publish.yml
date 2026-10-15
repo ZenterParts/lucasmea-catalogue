@@ -94,9 +94,10 @@ jobs:
         run: |
           git config user.name "Lucas catalogue publisher"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          SRC="${{ steps.tok.outputs.source }}"
           N=$(jq -r '"\(.added) added, \(.removed) removed"' "$RUNNER_TEMP/summary.json")
           git add -A
-          git commit -q -m "Publish from database: $N numbers (${{ steps.tok.outputs.source }})"
+          git commit -q -m "Publish from database ($SRC): numbers $N"
           for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || echo "Pages build will start from the push"
