@@ -93,7 +93,8 @@ h2{margin:0; font-size:clamp(1.85rem,3.4vw,2.9rem); font-weight:600; line-height
 .tile.help p{margin:0; font-size:1rem;}
 .tile.help .go{align-self:flex-start; font-weight:700; border-bottom:2px solid #fff; padding-bottom:2px; color:#fff; font-size:1rem;}
 /* 'Can't find your part?' runs as a full-width strip under the catalogue tiles */
-.tiles li.help-row{grid-column:1 / -1;}
+.tiles li.help-row{grid-column:span 3;}
+.tile.girling-tile{border-bottom-color:#FFCE00;}
 .tile.help.wide{flex-direction:row; align-items:center; gap:24px 40px; flex-wrap:wrap;}
 .tile.help.wide > div{flex:1 1 420px;}
 .tile.help.wide h3{margin-bottom:6px;}
@@ -128,7 +129,7 @@ footer .cl a:hover{color:#fff; text-decoration:underline;}
 footer .note{margin:clamp(32px,4vw,48px) 0 0; padding:18px 0 22px; border-top:1px solid #333; font-size:.875rem; color:#bdbdbd;}
 footer .rule{height:6px; background:var(--lucas-green);}
 
-@media (max-width:1000px){ .tiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+@media (max-width:1000px){ .tiles{grid-template-columns:repeat(3,minmax(0,1fr));} .tiles li.help-row{grid-column:1 / -1;} }
 @media (max-width:760px){ .tiles{grid-template-columns:repeat(2,minmax(0,1fr));} .steps ol{grid-template-columns:1fr;} .search button{padding:4px 18px 0;} }
 @media (prefers-reduced-motion:reduce){ .slides img, .dots span, .tile{transition:none;} }
 </style>
@@ -193,6 +194,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
         <li><a class="tile" href="/horns/"><div class="pic"><img src="/assets/home/horns.jpg" alt="" width="1000" height="525" loading="lazy"></div><div class="txt"><h3>Horns</h3><span>21 part numbers</span><span>12V and 24V</span></div></a></li>
         <li><a class="tile" href="/alternators/"><div class="pic"><img src="/assets/home/alternators.jpg" alt="" width="1199" height="686" loading="lazy"></div><div class="txt"><h3>Alternators</h3><span>200 part numbers</span><span>44 vehicle makes</span></div></a></li>
         <li><a class="tile" href="/starters/"><div class="pic"><img src="/assets/home/starters.jpg" alt="" width="1500" height="1000" loading="lazy"></div><div class="txt"><h3>Starters</h3><span>72 part numbers</span><span>23 vehicle makes</span></div></a></li>
+        <li><a class="tile girling-tile" href="/batteries/"><div class="pic"><img src="/assets/home/girling-batteries.jpg" alt="" width="1000" height="460" loading="lazy"></div><div class="txt"><h3>Girling Batteries</h3><span>257 part numbers</span><span>AGM, EFB, SMF and heavy duty</span></div></a></li>
         <li class="help-row"><a class="tile help wide" href="#find-part"><div><h3>Can't find your part?</h3><p>Send us the OE number, a photo or the vehicle details and we'll find the Lucas match for you.</p></div><span class="go">Contact us</span></a></li>
       </ul>
     </div>
