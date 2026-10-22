@@ -273,7 +273,8 @@ html.noscroll{overflow:hidden}
   .dh h2{font-size:20px}
   .sec{padding:40px 0}
 }
-@media print{#site-nav,.snav,.finder,.tools,.cfoot,.morebar,.lc-bar,.cta,.ov,.lb{display:none!important}.hero{padding-bottom:20px}}
+/* the catalogue is online only: printing shows a short note instead of the pages */
+@media print{body>*{display:none!important}body::before{content:"The Girling battery catalogue is available online at lucasmeacatalogue.com/batteries";display:block;padding:40px;font-size:16px}}
 </style>
 </head>
 <body>
@@ -426,7 +427,7 @@ html.noscroll{overflow:hidden}
 
 <section class="cta" aria-label="More">
   <div class="wrap">
-    <div class="ctab"><h3>Printable catalogue</h3><p>The full A4 catalogue with every table, drawing and the vehicle and SAB lists. Print it or save it as a PDF.</p><a class="btn btn-blue" href="/batteries/print/">Open the printable catalogue</a></div>
+    <div class="ctab"><h3>Request a price</h3><p>Add the batteries you need to the cart, set the quantities and send one request. You can mix batteries with any Lucas catalogue.</p><a class="btn btn-blue" href="/cart/">View cart</a></div>
     <div class="ctab"><h3>Can't find your battery?</h3><p>Send us the vehicle, the SAB number or a photo of the old battery and we'll find the Girling match.</p><a class="btn btn-pri" href="/contact/">Contact us</a></div>
   </div>
 </section>
@@ -617,9 +618,9 @@ function openDet(pn,noHash){
   var h='<div class="dh"><span class="tag t-'+r.kind+'">'+TECH_SHORT[r.kind]+'</span><h2 id="dTitle">'+r.pn+'</h2><button type="button" class="x" id="dX">Close</button></div><div class="db">'+
     '<div class="dtop"><div><div class="dimg"><img src="'+IMG[r.kind]+'" alt="Girling '+esc(r.series)+' battery"></div><small>Representative image of the '+esc(TECH[r.kind])+' range</small></div>'+
     '<table class="spec"><tbody>'+
-    [['Series',r.series],['Technology',TECH[r.kind]],['Origin',r.origin],['Case',r.box+' ('+r.group.replace(/ cases?$/,'')+')'],['Capacity (C20)',r.ah+' Ah'],['Cold cranking (EN)',r.cca+' A'],['Size L × W × H',r.L+' × '+r.W+' × '+r.H+' mm'],['Terminal layout',r.layout],['Hold-down',r.hd],['SAB number',r.sab||'–'],['Case drawing',r.dwg||'–'],['Printable catalogue','page '+r.page]]
+    [['Series',r.series],['Technology',TECH[r.kind]],['Origin',r.origin],['Case',r.box+' ('+r.group.replace(/ cases?$/,'')+')'],['Capacity (C20)',r.ah+' Ah'],['Cold cranking (EN)',r.cca+' A'],['Size L × W × H',r.L+' × '+r.W+' × '+r.H+' mm'],['Terminal layout',r.layout],['Hold-down',r.hd],['SAB number',r.sab||'–'],['Case drawing',r.dwg||'–']]
       .map(function(x){return '<tr><th>'+esc(x[0])+'</th><td>'+esc(x[1])+'</td></tr>';}).join('')+'</tbody></table></div>'+
-    '<div class="dact"><button type="button" class="btn btn-pri" data-cart="'+r.pn+'">Add to cart</button><button type="button" class="btn btn-sec" id="dCopy">Copy part number</button><a class="btn btn-sec" href="/batteries/print/#pn-'+r.pn+'">Show in printable catalogue</a></div>'+
+    '<div class="dact"><button type="button" class="btn btn-pri" data-cart="'+r.pn+'">Add to cart</button><button type="button" class="btn btn-sec" id="dCopy">Copy part number</button></div>'+
     (dw?'<div class="dsec"><h3>Case drawing '+r.dwg+'</h3><p>'+esc(dw.title)+'. Select to enlarge.</p><div class="dwgbox" data-dwg="'+r.dwg+'"><img src="img/'+r.dwg+'.jpg" alt="Technical drawing '+r.dwg+', '+esc(dw.title)+'" loading="lazy"></div></div>':'')+
     (same.length?'<div class="dsec"><h3>Same size, other origins and series</h3><p>Same SAB size ('+esc(r.sab)+') and terminal layout.</p><div class="alts">'+same.map(function(x){return '<button type="button" data-goto="'+x.pn+'"><b>'+x.pn+'</b>'+esc(x.origin)+' · '+esc(x.series)+' · '+x.ah+' Ah / '+esc(x.cca)+' A</button>';}).join('')+'</div></div>':'')+
     '<div class="dsec"><h3>Vehicles ('+fmt(vs.length)+')</h3><p>South African vehicle applications (SABAT 2019) for SAB '+esc(r.sab||'–')+'. <span class="pill p-rec">rec.</span> recommended size, <span class="pill p-alt">alt.</span> alternative size.</p>'+
