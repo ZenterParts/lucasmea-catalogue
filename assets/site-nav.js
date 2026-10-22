@@ -35,6 +35,11 @@
     '.snav .dd{position:relative}',
     '.snav .menu{display:none;position:absolute;top:calc(100% + 8px);left:0;min-width:230px;background:#fff;border-top:4px solid #00954C;box-shadow:0 12px 32px rgba(0,0,0,.25);padding:8px 0;z-index:60}',
     '.snav .dd.open .menu{display:block}',
+    // invisible bridge over the gap between the button and its menu, so moving the mouse down keeps the menu open
+    '.snav .menu::before{content:"";position:absolute;left:0;right:0;top:-16px;height:16px}',
+    '.snav .snav-back{margin-right:auto;padding-left:8px;position:static;inset:auto;background:none;flex-direction:row}',
+    '.snav .snav-back .snav-arr{font-size:20px;line-height:0;margin-top:-3px}',
+    '.snav .snav-back .snav-lbl-short{display:none}',
     '.snav .menu.wide{min-width:440px;display:none;grid-template-columns:repeat(2,1fr);gap:0 8px;padding:12px 8px;left:auto;right:0}',
     '.snav .dd.open .menu.wide{display:grid}',
     '.snav .menu a{display:flex;justify-content:space-between;white-space:nowrap;color:#231F20;text-transform:none;letter-spacing:0;font-size:15px;padding:8px 16px 6px;border-radius:0;border:0}',
@@ -47,6 +52,8 @@
     '@media (max-width:860px){',
     ' .snav-in{flex-wrap:wrap;justify-content:space-between;padding:0 12px}',
     ' .snav .toggle{display:inline-flex}',
+    ' .snav .snav-back{margin-right:0;padding-left:4px}.snav .snav-back .snav-lbl-long{display:none}.snav .snav-back .snav-lbl-short{display:inline}',
+    ' .snav .snav-in>.toggle{margin-left:auto}',
     ' .snav .items{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;padding:4px 0 12px}',
     ' .snav.open .items{display:flex}',
     ' .snav .items>a,.snav .items>.dd>button{width:100%;justify-content:space-between}',
@@ -69,6 +76,7 @@
 
   var html =
     '<nav class="snav" aria-label="Main"><div class="snav-in">' +
+      (onHome ? '' : '<a class="snav-back" href="/#catalogues" aria-label="Back to all catalogues"><span class="snav-arr" aria-hidden="true">&#8592;</span> <span class="snav-lbl-long">All catalogues</span><span class="snav-lbl-short">Catalogues</span></a>') +
       '<button type="button" class="toggle" aria-expanded="false" aria-controls="snav-items">Menu <span class="caret"></span></button>' +
       '<a class="cart toggle-cart' + (path.indexOf('/cart/') === 0 ? ' cur" aria-current="page"' : '"') + ' href="/cart/">Cart <b data-cart-count>0</b></a>' +
       '<div class="items" id="snav-items" style="display:contents">' +
@@ -104,8 +112,9 @@
     dds.forEach(function (d) {
       var b = d.querySelector('button');
       b.addEventListener('click', function (e) { e.stopPropagation(); var open = !d.classList.contains('open'); closeAll(d); d.classList.toggle('open', open); b.setAttribute('aria-expanded', String(open)); });
-      d.addEventListener('mouseenter', function () { if (!mq.matches) { closeAll(d); d.classList.add('open'); b.setAttribute('aria-expanded', 'true'); } });
-      d.addEventListener('mouseleave', function () { if (!mq.matches) { d.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); } });
+      var shut = null;   // short delay before closing, so a diagonal mouse move to the menu does not close it
+      d.addEventListener('mouseenter', function () { if (!mq.matches) { clearTimeout(shut); closeAll(d); d.classList.add('open'); b.setAttribute('aria-expanded', 'true'); } });
+      d.addEventListener('mouseleave', function () { if (!mq.matches) { clearTimeout(shut); shut = setTimeout(function () { d.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); }, 300); } });
       d.querySelector('.menu').addEventListener('click', function (e) { if (e.target.closest('a')) { closeAll(); nav.classList.remove('open'); } });
     });
     document.addEventListener('click', function (e) { if (!nav.contains(e.target)) closeAll(); });
