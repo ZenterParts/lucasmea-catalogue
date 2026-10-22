@@ -18,7 +18,7 @@
       { name: 'Alternators', href: '/alternators/' }
     ] },
     { brand: 'Girling', anchor: 'girling', items: [
-      { name: 'Batteries' }
+      { name: 'Batteries', href: '/batteries/' }
     ] }
   ];
   var ABOUT_URL = 'https://www.lucasmeaparts.com/about-us';
