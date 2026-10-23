@@ -1,8 +1,11 @@
 /* Lucas online catalogues — builds the inquiry Excel file in the browser.
- * Same layout for every catalogue: Inquiry No., LP No., Description, Qty (no technical data).
+ * Same layout for every catalogue: LP No., Description, Qty. The inquiry number is in the title and the details
+ * at the top, not on every row. The sales copy (/rfq/ page, signed-in staff) adds OE numbers and Supplier PN
+ * columns, passed in as request.extra; the customer's copy never has them.
  * Loads ExcelJS (self-hosted) only when needed.
  *   LucasRFQExcel.build(request) -> Promise<Blob>
- *   request = { ref, date (Date), name, company, email, phone, country, type, message, items: [cart items] }
+ *   request = { ref, date (Date), name, company, email, phone, country, type, message, items: [cart items],
+ *               extra (optional): { cols: [{ h, w }], values: function (item) -> [values for those columns] } }
  */
 (function () {
   'use strict';
@@ -41,14 +44,15 @@
     return [it.make, it.app].filter(Boolean).join(' ');
   }
 
-  // Same four columns for every catalogue: Inquiry No. | LP No. | Description | Qty
+  // LP No. | Description | (extra columns, staff copy only) | Qty
   function build(req) {
     return Promise.all([loadLib(), loadLogo()]).then(function (res) {
       var ExcelJS = res[0], logo = res[1];
       var items = req.items || [];
       var date = req.date || new Date();
-      var cols = [{ h: 'Inquiry No.', w: 22 }, { h: 'LP No.', w: 16 }, { h: 'Description', w: 64 }, { h: 'Qty', w: 9 }];
-      var N = cols.length;
+      var extra = req.extra && req.extra.cols && req.extra.cols.length ? req.extra : null;
+      var cols = [{ h: 'LP No.', w: 19 }, { h: 'Description', w: extra ? 50 : 64 }].concat(extra ? extra.cols : [], [{ h: 'Qty', w: 9 }]);
+      var N = cols.length, QTY = String.fromCharCode(64 + N);
 
       var wb = new ExcelJS.Workbook();
       wb.creator = 'Lucas online catalogue'; wb.created = date;
@@ -70,8 +74,8 @@
         var id = wb.addImage({ base64: logo, extension: 'png' });
         ws.addImage(id, { tl: { col: 0, row: 0 }, ext: { width: 208, height: 42 }, editAs: 'absolute' });
       }
-      ws.mergeCells(1, 3, 1, N);
-      var t = ws.getCell(1, 3);
+      ws.mergeCells(1, 2, 1, N);
+      var t = ws.getCell(1, 2);
       t.value = 'INQUIRY ' + (req.ref || ''); t.font = { name: FONT, size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
       t.alignment = { horizontal: 'right', vertical: 'middle' };
 
@@ -112,10 +116,11 @@
       var first = r;
       items.forEach(function (it, idx) {
         var row = ws.getRow(r);
-        [req.ref || '', it.no, descOf(it), Number(it.qty) || 1].forEach(function (v, i) {
+        var ex = extra ? (extra.values(it) || []) : [];
+        [it.no, descOf(it)].concat(extra ? extra.cols.map(function (c, k) { return ex[k] == null ? '' : ex[k]; }) : [], [Number(it.qty) || 1]).forEach(function (v, i) {
           var cell = row.getCell(i + 1);
           cell.value = v; cell.border = box;
-          cell.font = { name: FONT, size: 10, color: { argb: i === 1 ? GREEN : BLACK }, bold: i === 1 };
+          cell.font = { name: FONT, size: 10, color: { argb: i === 0 ? GREEN : BLACK }, bold: i === 0 };
           cell.alignment = { vertical: 'top', wrapText: true, horizontal: i === N - 1 ? 'center' : 'left' };
           if (idx % 2 === 1) cell.fill = fill('FFF7F7F7');
         });
@@ -129,7 +134,7 @@
       var tl = tr.getCell(1); tl.value = 'Total quantity'; tl.alignment = { horizontal: 'right', vertical: 'middle' };
       tl.font = { name: FONT, size: 10, bold: true, color: { argb: BLACK } };
       var tq = tr.getCell(N);
-      tq.value = items.length ? { formula: 'SUM(D' + first + ':D' + last + ')', result: items.reduce(function (s, it) { return s + (Number(it.qty) || 1); }, 0) } : 0;
+      tq.value = items.length ? { formula: 'SUM(' + QTY + first + ':' + QTY + last + ')', result: items.reduce(function (s, it) { return s + (Number(it.qty) || 1); }, 0) } : 0;
       tq.font = { name: FONT, size: 10, bold: true, color: { argb: BLACK } }; tq.alignment = { horizontal: 'center', vertical: 'middle' };
       for (var k = 1; k <= N; k++) { var cell = tr.getCell(k); cell.fill = fill(GREEN_10); cell.border = { top: { style: 'medium', color: { argb: GREEN } }, bottom: thin, left: thin, right: thin }; }
 
