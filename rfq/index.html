@@ -50,6 +50,11 @@ footer .rule{height:6px; background:var(--lucas-green);}
 footer .inner{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:22px 24px 26px; max-width:1100px; margin:0 auto; font-size:0.9rem;}
 footer .strapline{font-weight:700; color:var(--lucas-green); font-size:1.2rem;}
 footer .bar{height:24px; background:var(--lucas-green);}
+#staffBox{margin:14px 0 0; padding:12px 14px 10px; border:1px solid var(--lucas-border); border-left:4px solid var(--lucas-green); background:#fff; font-size:0.92rem; max-width:760px;}
+#staffBox form{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px;}
+#staffBox input{font:inherit; font-size:0.95rem; padding:8px 10px 6px; border:1px solid #c9c9c9; border-radius:4px; min-width:200px;}
+#staffBox .err{color:#b3261e;}
+@media print{ #staffBox{display:none !important;} }
 @media print{ .actions, .note, footer, .lucas-bar{display:none !important;} .pagehead{margin:0; padding:12px 0;} }
 @media (max-width:600px){ body{font-size:16px;} .wrap{padding:0 16px;} .details td:first-child{width:120px;}  }
 </style>
@@ -86,6 +91,68 @@ footer .bar{height:24px; background:var(--lucas-green);}
   // &dl=1 (the customer's Excel link): start the Excel download as soon as the page opens
   var AUTODL = /[?&]dl=1\b/.test(location.search);
   window.addEventListener('hashchange', function(){ location.reload(); });
+
+  // ---- Sales copy: OE numbers and supplier part numbers for signed-in staff ----
+  // Looked up live from the Master Data database with the staff site's login (same browser = already signed in).
+  // Only signed-in staff can read them (database row level security); they are never put into the link itself.
+  var SB_URL = 'https://kyegujgvlsbttyrlibgn.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5ZWd1amd2bHNidHR5cmxpYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNTQ4NjUsImV4cCI6MjEwNjgzMDg2NX0.qw8n7Y9l8zO-npZ4BDlqK9PvksRQpEVg6BxqEo_MnWs';
+  var STAFF = null;
+  function loadSupabase(){
+    return window.supabase ? Promise.resolve() : new Promise(function(ok, fail){
+      var s = document.createElement('script'); s.src = '/assets/vendor-supabase-2.57.4.min.js'; s.onload = ok; s.onerror = function(){ fail(new Error('could not load')); };
+      document.head.appendChild(s);
+    });
+  }
+  function staffInit(req, partsTable){
+    var box = document.getElementById('staffBox'); if (!box) return;
+    var sb = null;
+    function signInForm(msg){
+      box.innerHTML = '<b>Staff:</b> sign in to add OE numbers and supplier part numbers to this list and the Excel.' +
+        '<form id="sf"><input type="email" id="sfE" placeholder="Work email" autocomplete="username" required><input type="password" id="sfP" placeholder="Password" autocomplete="current-password" required><button class="btn" type="submit">Sign in</button></form>' +
+        (msg ? '<div class="err" style="margin-top:6px">' + esc(msg) + '</div>' : '');
+      document.getElementById('sf').addEventListener('submit', function(e){
+        e.preventDefault();
+        var b = this.querySelector('button'); b.disabled = true; b.textContent = 'Signing in…';
+        sb.auth.signInWithPassword({ email: document.getElementById('sfE').value.trim(), password: document.getElementById('sfP').value }).then(function(r){
+          if (r.error) return signInForm(r.error.message === 'Invalid login credentials' ? 'Email or password is wrong.' : r.error.message);
+          load();
+        });
+      });
+    }
+    function load(){
+      box.textContent = 'Loading OE numbers and supplier part numbers…';
+      var pns = req.items.map(function(it){ return it.no; }).filter(function(v, i, a){ return v && a.indexOf(v) === i; });
+      var chunks = []; for (var i = 0; i < pns.length; i += 150) chunks.push(pns.slice(i, i + 150));
+      Promise.all(chunks.map(function(ch){
+        return Promise.all([
+          sb.from('products').select('lucas_pn,supplier_pn').in('lucas_pn', ch),
+          sb.from('oe_numbers').select('lucas_pn,oe_number,oe_brand,is_primary,id').in('lucas_pn', ch).order('is_primary', { ascending: false }).order('id')
+        ]);
+      })).then(function(res){
+        var map = {}, found = 0;
+        res.forEach(function(pair){
+          if (pair[0].error) throw pair[0].error; if (pair[1].error) throw pair[1].error;
+          pair[0].data.forEach(function(p){ (map[p.lucas_pn] = map[p.lucas_pn] || { oe: [], sup: '' }).sup = p.supplier_pn || ''; found++; });
+          pair[1].data.forEach(function(o){ var m = map[o.lucas_pn] = map[o.lucas_pn] || { oe: [], sup: '' }; m.oe.push(o.oe_brand ? o.oe_number + ' (' + o.oe_brand + ')' : o.oe_number); });
+        });
+        Object.keys(map).forEach(function(k){ map[k].oe = map[k].oe.join(', '); });
+        STAFF = map;
+        var sec = document.getElementById('partsSec'); if (sec) sec.innerHTML = '<h2>Parts</h2>' + partsTable(map);
+        return sb.auth.getUser().then(function(u){
+          box.innerHTML = 'Signed in as <b>' + esc(u.data.user && u.data.user.email || 'staff') + '</b>. OE numbers and supplier part numbers are included in the list and the Excel' +
+            (found < pns.length ? ' (' + (pns.length - found) + ' of ' + pns.length + ' part numbers are not in the database yet).' : '.');
+        });
+      }).catch(function(e){
+        box.innerHTML = '<span class="err">Signed in, but the part data could not be loaded: ' + esc(e && e.message || e) + '.</span> The Excel will download without OE numbers and supplier part numbers.';
+      });
+    }
+    loadSupabase().then(function(){
+      sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+      return sb.auth.getSession();
+    }).then(function(r){ if (r.data && r.data.session) load(); else signInForm(''); })
+      .catch(function(){ box.textContent = 'Staff sign-in is unavailable right now. The Excel will download without OE numbers and supplier part numbers.'; });
+  }
   LucasRFQLink.read(location.hash).then(function(req){
     document.title = 'Inquiry ' + req.ref + ' – Lucas';
     var total = req.items.reduce(function(s, it){ return s + (Number(it.qty) || 0); }, 0);
@@ -93,11 +160,15 @@ footer .bar{height:24px; background:var(--lucas-green);}
       ['Email', req.email ? '<a href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your inquiry ' + req.ref) + '">' + esc(req.email) + '</a>' : '–'],
       ['Phone / WhatsApp', esc(req.phone || '–')], ['Country', esc(req.country || '–')], ['Customer type', esc(req.type || '–')],
       ['Message', esc(req.message || '–').replace(/\n/g, '<br>')]];
-    var partsHtml = req.items.length ? '<section><h2>' + (CUSTOMER ? 'What you asked for' : 'Parts') + '</h2><div class="scroll"><table class="parts"><thead><tr><th>#</th><th>LP No.</th><th>Description</th><th style="text-align:center">Qty</th></tr></thead><tbody>' +
+    function partsTable(st){   // st: staff lookup { LP no.: { oe, sup } } once a signed-in staff member has loaded it
+      return '<div class="scroll"><table class="parts"><thead><tr><th>#</th><th>LP No.</th><th>Description</th>' + (st ? '<th>OE numbers</th><th>Supplier PN</th>' : '') + '<th style="text-align:center">Qty</th></tr></thead><tbody>' +
           req.items.map(function(it, i){
-            return '<tr><td>' + (i + 1) + '</td><td class="no">' + esc(it.no) + '</td><td>' + esc(it.desc || '') + '</td><td class="qty">' + esc(it.qty) + '</td></tr>';
+            var x = st && st[it.no] || {};
+            return '<tr><td>' + (i + 1) + '</td><td class="no">' + esc(it.no) + '</td><td>' + esc(it.desc || '') + '</td>' + (st ? '<td>' + esc(x.oe || '–') + '</td><td>' + esc(x.sup || '–') + '</td>' : '') + '<td class="qty">' + esc(it.qty) + '</td></tr>';
           }).join('') +
-          '<tr class="total"><td colspan="3" style="text-align:right">Total quantity</td><td class="qty">' + total + '</td></tr></tbody></table></div></section>' : '';
+          '<tr class="total"><td colspan="' + (st ? 5 : 3) + '" style="text-align:right">Total quantity</td><td class="qty">' + total + '</td></tr></tbody></table></div>';
+    }
+    var partsHtml = req.items.length ? '<section id="partsSec"><h2>' + (CUSTOMER ? 'What you asked for' : 'Parts') + '</h2>' + partsTable(null) + '</section>' : '';
     if (CUSTOMER) {
       document.title = 'Your inquiry ' + req.ref + ' – Lucas';
       var bt = document.querySelector('.bar-title'); if (bt) bt.textContent = 'Your inquiry';
@@ -128,6 +199,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
           (req.email ? '<a class="btn outline" href="mailto:' + esc(req.email) + '?subject=' + encodeURIComponent('Your inquiry ' + req.ref) + '">Reply to customer</a>' : '') +
         '</div>' +
         '<p class="note" id="dlNote" style="margin:10px 0 0"></p>' +
+        (req.items.length ? '<div id="staffBox">Checking staff sign-in…</div>' : '') +
       '</div></div>' +
       '<div class="wrap">' +
         '<section><h2>Customer</h2><table class="details">' + rows.map(function(r){ return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('') + '</table></section>' +
@@ -140,7 +212,10 @@ footer .bar{height:24px; background:var(--lucas-green);}
       LucasRFQExcel.preload().catch(function(){});
       btn.addEventListener('click', function(){
         btn.disabled = true; btn.textContent = 'Preparing Excel…'; note.textContent = '';
-        LucasRFQExcel.build(req).then(function(blob){
+        var xreq = req;
+        if (!CUSTOMER && STAFF) xreq = Object.assign({}, req, { extra: { cols: [{ h: 'OE numbers', w: 34 }, { h: 'Supplier PN', w: 18 }],
+          values: function (it) { var x = STAFF[it.no] || {}; return [x.oe || '', x.sup || '']; } } });
+        LucasRFQExcel.build(xreq).then(function(blob){
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob); a.download = LucasRFQExcel.fileName(req.ref);
           document.body.appendChild(a); a.click(); a.remove();
@@ -152,6 +227,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
       });
       if (AUTODL) btn.click();
     }
+    if (!CUSTOMER && req.items.length) staffInit(req, partsTable);
   }).catch(function(err){
     app.innerHTML = '<div class="wrap"><div class="error"><h1>This request link could not be opened</h1><p>' + esc(err.message) + '</p><a class="btn" href="/">Go to the catalogues</a></div></div>';
   });
