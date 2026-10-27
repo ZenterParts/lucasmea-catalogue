@@ -15,7 +15,8 @@
       { name: 'Wiper Blades', href: '/wiper-blades/' },
       { name: 'Water Pumps', href: '/water-pumps/' },
       { name: 'Starters', href: '/starters/' },
-      { name: 'Alternators', href: '/alternators/' }
+      { name: 'Alternators', href: '/alternators/' },
+      { name: 'Ignition Coils', href: '/ignition-coils/' }
     ] },
     { brand: 'Girling', anchor: 'girling', items: [
       { name: 'Batteries', href: '/batteries/' }

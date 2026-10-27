@@ -60,6 +60,7 @@
   // ---------- part form ----------
   var GEN = [['short_desc', 'Description'], ['long_desc', 'Long description'], ['brand', 'Brand'], ['origin', 'Origin'], ['supplier_pn', 'Supplier PN'], ['zp_pn', 'ZP PN'], ['barcode', 'Barcode'], ['hs_code', 'HS code'], ['source_inquiry', 'Source inquiry']];
   var PRICE = [['fob_usd', 'FOB USD'], ['exw_usd', 'EXW USD'], ['price_list', 'Price list']];
+  var REGIONS = [['east_africa', 'East Africa'], ['central_africa', 'Central Africa'], ['west_africa', 'West Africa'], ['southern_africa', 'Southern Africa'], ['middle_east', 'Middle East'], ['north_africa', 'North Africa'], ['ocean_islands', 'Indian Ocean Islands'], ['gcc', 'GCC']];
   var COST = [['pct_cons', 'Consolidation %'], ['pct_ship', 'Shipping %'], ['pct_ins', 'Insurance %'], ['pct_port', 'Port %'], ['pct_wh', 'Warehouse %'], ['min_retention', 'Min. retention %'], ['max_discount', 'Max. discount %']];
   var LISTS = {
     specs: { table: 'product_specs', cols: [['attribute', 'Attribute'], ['value', 'Value']], req: 'attribute' },
@@ -88,7 +89,8 @@
         sb.from('applications').select('*', { count: 'exact' }).eq('lucas_pn', pn).order('make').order('model').limit(500),
         sb.from('spec_bulbs').select('*').eq('lucas_pn', pn).maybeSingle(),
         sb.from('inventory').select('*').eq('lucas_pn', pn).order('warehouse'),
-        sb.from('part_history').select('*', { count: 'exact' }).eq('lucas_pn', pn).order('at', { ascending: false }).order('id', { ascending: false }).limit(300)
+        sb.from('part_history').select('*', { count: 'exact' }).eq('lucas_pn', pn).order('at', { ascending: false }).order('id', { ascending: false }).limit(300),
+        sb.from('product_regional_prices').select('*').eq('lucas_pn', pn).maybeSingle()
       ]);
       var p = L.must(r[0]);
       if (!p) { L.cp({ crumbs: [['Parts & prices', BASE], [pn]] }); return L.content(L.empty('Part not found', esc(pn) + ' is not in the database.')); }
@@ -114,6 +116,13 @@
         stock.map(function (s) { return '<tr><td>' + esc(s.warehouse) + '</td><td>' + esc(s.bin || '') + '</td><td class="num">' + L.qty(s.qty_on_hand) + '</td><td class="num">' + L.qty(s.qty_reserved) + '</td><td class="num">' + L.qty(s.qty_on_hand - s.qty_reserved) + '</td><td class="small">' + esc(L.dt(s.updated_at)) + '</td></tr>'; }).join('') + '</tbody></table>' :
         '<p class="muted">No stock recorded.</p>' + '<p><a href="' + L.href('inventory', [pn]) + '">Open in Inventory →</a></p>' });
       tabs.push({ key: 'cost', label: 'Cost model', html: '<p class="muted small">Used to calculate Net CIF and RP CIF from the EXW price.</p><div class="o-groups">' + L.group('', COST.map(function (f) { return [f[1], inp('r_' + f[0], pr[f[0]] == null ? '' : Math.round(pr[f[0]] * 10000) / 100, ' inputmode="decimal"')]; })) + '</div>' });
+      var reg = r[10] && !r[10].error ? r[10].data : null;
+      if (reg) tabs.push({ key: 'reg', label: 'Regional prices', html:
+        '<p class="muted small">Landed cost = FOB × (1 + on-costs in the Cost model tab). Regional price = landed cost ÷ (1 − margin), rounded to 0.1. Sales price = the highest regional price. Change the FOB or a margin and save: the prices recalculate.</p>' +
+        '<div class="o-groups">' + L.group('', [['FOB USD', L.money(reg.fob_usd)], ['Landed cost USD', L.money(reg.landed_cost)], ['Sales price USD', '<b>' + L.money(reg.sales_price) + '</b>'], ['MOQ', inp('g_moq', reg.moq, ' inputmode="numeric"')], ['Price source', esc(reg.price_source || '')], ['Reference FOB USD', L.money(reg.fob_reference_usd)]]) + '</div>' +
+        '<table class="grid compact" style="margin-top:12px"><thead><tr><th>Region</th><th class="num">Margin %</th><th class="num">Price USD</th></tr></thead><tbody>' +
+        REGIONS.map(function (g) { var m = reg['margin_' + g[0]]; return '<tr><td>' + g[1] + '</td><td class="num">' + inp('g_' + g[0], m == null ? '' : Math.round(m * 10000) / 100, ' inputmode="decimal" style="width:80px;text-align:right"') + '</td><td class="num">' + L.money(reg['price_' + g[0]]) + '</td></tr>'; }).join('') + '</tbody></table>' +
+        '<div class="o-group-title" style="margin-top:14px">Pricing and supplier notes</div><textarea id="g_notes" rows="3"' + (ed ? '' : ' readonly') + '>' + esc(reg.notes || '') + '</textarea>' });
       var hist = r[9].data || [], histN = r[9].count || hist.length;
       tabs.push({ key: 'hist', label: 'History <span class="muted">(' + histN + ')</span>', html: (histN > hist.length ? '<p class="muted small">Latest ' + hist.length + ' of ' + histN + ' changes. <a href="' + L.href('parts', ['history'], { q: pn }) + '">See all in the change log →</a></p>' : '') + histTable(hist, false) });
       tabs.push({ key: 'notes', label: 'Notes', html: '<textarea id="p_notes" rows="5"' + (ed ? '' : ' readonly') + '>' + esc(p.notes || '') + '</textarea>' });
@@ -153,6 +162,12 @@
           PRICE.forEach(function (f) { var v = $('r_' + f[0]).value.trim(); if (f[0] === 'price_list') pv.price_list = v || null; else { var n = L.num(v); if (Number.isNaN(n)) throw new Error(f[1] + ' must be a number'); pv[f[0]] = n; } if (v) touched = true; });
           COST.forEach(function (f) { var v = $('r_' + f[0]).value.trim(); if (v !== '') { var n = L.num(v); if (Number.isNaN(n)) throw new Error(f[1] + ' must be a number'); pv[f[0]] = n / 100; } });
           if (touched) L.must(await sb.from('product_pricing').upsert(pv, { onConflict: 'lucas_pn' }));
+          if (reg) {
+            var gv = { lucas_pn: pn, notes: $('g_notes').value.trim() || null }, mq = L.num($('g_moq').value.trim());
+            if (Number.isNaN(mq)) throw new Error('MOQ must be a number'); gv.moq = mq;
+            REGIONS.forEach(function (g) { var v = L.num($('g_' + g[0]).value.trim()); if (Number.isNaN(v)) throw new Error(g[1] + ' margin must be a number'); gv['margin_' + g[0]] = v == null ? null : v / 100; });
+            L.must(await sb.from('product_regional_pricing').upsert(gv, { onConflict: 'lucas_pn' }));
+          }
           if (bulb) { var bu = {}; bulbCols.forEach(function (k) { var v = $('b_' + k).value.trim(); bu[k] = v === '' ? null : (k === 'kelvin' ? Number(v) : v); }); L.must(await sb.from('spec_bulbs').update(bu).eq('lucas_pn', pn)); }
           for (var key in LISTS) {
             var d = LISTS[key], now = readRows(key);

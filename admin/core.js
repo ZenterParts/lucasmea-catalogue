@@ -24,14 +24,16 @@ window.LS = (function () {
   L.qty = function (v) { return v == null || v === '' ? '' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }); };
   L.dt = function (v) { if (!v) return ''; var d = new Date(v); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); };
   L.label = function (k) {
-    return ({ lucas_pn: 'Lucas PN', fob_usd: 'FOB USD', exw_usd: 'EXW USD', rp_cif: 'RP CIF', net_cif: 'Net CIF', cost_zenter: 'Cost Zenter', oe_numbers: 'OE numbers', hs_code: 'HS code', current_a: 'Current', supplier_pn: 'Supplier PN', zp_pn: 'ZP PN', units_per_box: 'Units / box', units_per_carton: 'Units / carton' })[k] ||
+    return ({ lucas_pn: 'Lucas PN', fob_usd: 'FOB USD', exw_usd: 'EXW USD', rp_cif: 'RP CIF', net_cif: 'Net CIF', cost_zenter: 'Cost Zenter', oe_numbers: 'OE numbers', hs_code: 'HS code', current_a: 'Current', supplier_pn: 'Supplier PN', zp_pn: 'ZP PN', units_per_box: 'Units / box', units_per_carton: 'Units / carton',
+      landed_cost: 'Landed cost USD', sales_price: 'Sales price USD', moq: 'MOQ', price_source: 'Price source', price_east_africa: 'East Africa USD', price_central_africa: 'Central Africa USD', price_west_africa: 'West Africa USD',
+      price_southern_africa: 'Southern Africa USD', price_middle_east: 'Middle East USD', price_north_africa: 'North Africa USD', price_ocean_islands: 'Ocean Islands USD', price_gcc: 'GCC USD' })[k] ||
       (k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' ').replace(/ dia$/, ' Ø'));
   };
-  L.NUMCOLS = /^(fob_usd|exw_usd|cost_zenter|rp_cif|net_cif|vehicle_count|units_per_box|units_per_carton|net_weight_kg|gross_weight_kg|on_hand|reserved|available)$/;
+  L.NUMCOLS = /^(fob_usd|exw_usd|cost_zenter|rp_cif|net_cif|vehicle_count|units_per_box|units_per_carton|net_weight_kg|gross_weight_kg|on_hand|reserved|available|landed_cost|sales_price|moq|price_(east_africa|central_africa|west_africa|southern_africa|middle_east|north_africa|ocean_islands|gcc))$/;
   L.PCTCOLS = /^(margin|markup)$/;
   L.cell = function (k, v) {
     if (v == null) return '<td></td>';
-    if (L.NUMCOLS.test(k)) return '<td class="num">' + (/usd|cif|cost/.test(k) ? L.money(v) : esc(L.qty(v))) + '</td>';
+    if (L.NUMCOLS.test(k)) return '<td class="num">' + (/usd|cif|cost|price/.test(k) ? L.money(v) : esc(L.qty(v))) + '</td>';
     if (L.PCTCOLS.test(k)) return '<td class="num">' + (Number(v) * 100).toFixed(1) + '%</td>';
     if (k === 'lucas_pn') return '<td class="pn">' + esc(v) + '</td>';
     var s = String(v); return '<td class="clip" title="' + esc(s.length > 60 ? s : '') + '">' + esc(s) + '</td>';
