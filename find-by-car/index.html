@@ -197,6 +197,7 @@ const CONFIG = {
     { label: "Starter motors", group: "Under the bonnet", slug: "starters", model: "starter", url: "/starters/", pos: [1.32, "hood", 0.1], normal: [0.3, 1, 0], faceDeg: 60, viewDeg: 30, note: "72 Lucas part numbers" },
     { label: "Water pumps", group: "Under the bonnet", slug: "water-pumps", model: "waterPump", url: "/water-pumps/", pos: [1.95, "hood", -0.12], normal: [0.3, 1, 0], faceDeg: 100, viewDeg: 30, note: "1,256 Lucas part numbers" },
     { label: "Filters", group: "Under the bonnet", slug: "filters", model: "filters", url: "/filters/", pos: [1.6, "hood", -0.42], normal: [0.3, 1, -0.2], faceDeg: 120, viewDeg: 35, note: "Oil, air, fuel and cabin filters: 779 Lucas part numbers" },
+    { label: "Ignition coils", group: "Under the bonnet", slug: "ignition-coils", model: "ignitionCoil", url: "/ignition-coils/", pos: [1.22, "hood", -0.3], normal: [0.3, 1, -0.1], faceDeg: 70, viewDeg: 25, note: "952 Lucas part numbers" },
     { label: "Batteries", group: "Under the bonnet", slug: "batteries", model: "battery", url: "/batteries/", pos: [1.88, "hood", 0.55], normal: [0.3, 1, 0.25], faceDeg: 40, viewDeg: 30, note: "Girling batteries: 257 part numbers" },
     { label: "Horns", group: "Lights & sound", slug: "horns", model: "horn", url: "/horns/", pos: [2.33, 0.60, -0.22], normal: [1, 0.1, -0.25], faceDeg: 110, viewDeg: 55, note: "21 Lucas part numbers" },
     { label: "Bulbs", group: "Lights & sound", slug: "bulbs", model: "bulb", url: "/bulbs/", pos: [2.255, 0.8, 0.71], normal: [1, 0.15, 0.9], faceDeg: 55, viewDeg: 30, note: "Halogen, LED and HID: 388 Lucas part numbers",
@@ -1033,6 +1034,22 @@ const CONFIG = {
       return [ piece("Motor yoke", [0,1,0], 0, yoke, [0, -0.42, 0]), piece("Armature", [-1,0,0], 0.95, arm, [0, 0.32, 0]),
                piece("End cap & brushes", [-1,0,0], 1.75, endCap, [0, -0.42, 0]), piece("Drive-end housing", [1,0,0], 0.8, drive, [0, -0.55, 0]),
                piece("Pinion drive", [1,0,0], 1.5, pinion, [0, 0.2, 0]), piece("Solenoid", [0,1,0], 0.85, sol) ];
+    },
+
+    ignitionCoil(){   // pencil (coil-on-plug) ignition coil, standing upright
+      const body = [ CY(0.2, 1.5, MAT.black, 0, 0.75, 0), CY(0.205, 0.08, MAT.accent, 0, 1.2, 0), CY(0.205, 0.04, MAT.dark, 0, 0.12, 0) ];
+      const head = [ B(0.62, 0.34, 0.5, MAT.case, 0.05, 1.68, 0), B(0.3, 0.24, 0.34, MAT.case2, 0.48, 1.7, 0) ];
+      for (let i = 0; i < 3; i++) head.push(CX(0.025, 0.12, MAT.brass, 0.6, 1.7, -0.1 + i * 0.1, 12));
+      const flange = [ B(0.62, 0.07, 0.28, MAT.case2, -0.36, 1.52, 0), CY(0.09, 0.09, MAT.steel, -0.6, 1.52, 0, 24), CY(0.05, 0.1, MAT.dark, -0.6, 1.52, 0, 16) ];
+      const windings = [ CY(0.16, 1.2, MAT.copper, 0, 0.8, 0) ];
+      for (let k = 0; k < 9; k++) windings.push(CY(0.165, 0.025, MAT.brass, 0, 0.26 + k * 0.135, 0, 32));
+      const core = [ CY(0.06, 1.35, MAT.lead, 0, 0.8, 0, 24) ];
+      const boot = [ at(new THREE.CylinderGeometry(0.17, 0.13, 0.62, 40), MAT.rubber, 0, -0.29, 0), CY(0.18, 0.06, MAT.rubber, 0, -0.02, 0) ];
+      const spring = [ HELIX("y", 0.34, 0.045, 7, 0.012, MAT.steel, 0, -0.78, 0), CY(0.05, 0.05, MAT.brass, 0, -0.58, 0, 16) ];
+      return [ piece("Coil body", [0,1,0], 0, body, [0.2, -0.35, 0]), piece("Connector & driver module", [0,1,0], 1.0, head, [0.3, 0.1, 0]),
+               piece("Mounting flange", [-1,1,0], 0.75, flange), piece("Primary & secondary windings", [1,0,0], 1.0, windings, [0, 0.55, 0]),
+               piece("Iron core", [-1,0,0], 0.85, core, [0, 0.45, 0]), piece("Spark plug boot", [0,-1,0], 0.55, boot),
+               piece("Spring contact", [0,-1,0], 1.0, spring) ];
     },
 
     waterPump(){

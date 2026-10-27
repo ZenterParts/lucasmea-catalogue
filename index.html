@@ -186,6 +186,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
           <img src="/assets/home/alternators.jpg" alt="Lucas alternator with its Lucas box" width="1199" height="686" aria-hidden="true">
           <img src="/assets/home/starters.jpg" alt="Lucas starter motor with its Lucas box" width="1500" height="1000" aria-hidden="true">
           <img src="/assets/home/gas-springs.jpg" alt="Lucas gas springs with their Lucas boxes" width="1800" height="536" aria-hidden="true">
+          <img src="/assets/home/ignition-coils.jpg" alt="Lucas ignition coils with their Lucas boxes" width="1000" height="620" aria-hidden="true">
         </div>
         <div class="show-bar">
           <a href="/horns/" id="showLink">See the Horns catalogue</a>
@@ -296,7 +297,7 @@ footer .rule{height:6px; background:var(--lucas-green);}
   'use strict';
   /* ---------- product slideshow ---------- */
   var slides = Array.prototype.slice.call(document.querySelectorAll('#slides img'));
-  var RANGES = [['Horns', '/horns/'], ['Water Pumps', '/water-pumps/'], ['Bulbs', '/bulbs/'], ['Filters', '/filters/'], ['Wiper Blades', '/wiper-blades/'], ['Alternators', '/alternators/'], ['Starters', '/starters/'], ['Gas Springs', '/gas-springs/']];
+  var RANGES = [['Horns', '/horns/'], ['Water Pumps', '/water-pumps/'], ['Bulbs', '/bulbs/'], ['Filters', '/filters/'], ['Wiper Blades', '/wiper-blades/'], ['Alternators', '/alternators/'], ['Starters', '/starters/'], ['Gas Springs', '/gas-springs/'], ['Ignition Coils', '/ignition-coils/']];
   var dots = document.getElementById('dots'), link = document.getElementById('showLink'), at = 0, timer = null;
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   RANGES.forEach(function (r, k) {
