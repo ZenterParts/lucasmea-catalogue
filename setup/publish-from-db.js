@@ -495,8 +495,71 @@ page('filters', Object.keys(FC), {
   },
 });
 
+// Ignition coils: one item per coil; vehicles as [make, model and engine, years]; retired numbers point to their replacement
+const IGN_ALIAS = { 'Volkswagen': ['VW'], 'Mercedes-Benz': ['MERCEDES-BENZ', 'MERCEDES BENZ', 'MERCEDES'], 'Citroen': ['CITROËN'], 'FAW Haima': ['FAWHAIMA'], 'Lynk & Co': ['LYNK&CO'], 'Karry': ['KARRY(CHERY)'] };
+function ignModel(make, model) {   // "TOYOTA COROLLA 1.6L" under Toyota -> "COROLLA 1.6L"
+  const m = t(model), up = m.toUpperCase();
+  for (const p of [make.toUpperCase()].concat(IGN_ALIAS[make] || [])) if (up.startsWith(p + ' ')) return t(m.slice(p.length));
+  return m;
+}
+const ignYear = v => (/^\d{4}$/.test(t(v)) ? Number(t(v)) : t(v));
+page('ignition-coils', ['Ignition Coils'], {
+  load(pg) { this.SUP = pg.read('SUP'); this.META = pg.read('META'); return pg.read('DATA'); },
+  pn: d => d.p,
+  set(d, pn, k, v, what) { if (same(d[k], v)) return; log(this.dir, pn, what || k, { from: d[k], to: v }); d[k] = v; },
+  fields(d, pn, db) {
+    if (HAS_SPECS) {
+      this.set(d, pn, 'pins', specOf(db, 'Connector') || 'Not specified', 'connector');
+      this.set(d, pn, 'mod', specOf(db, 'Ignition module') || 'Not specified', 'ignition module');
+      this.set(d, pn, 'seg', specOf(db, 'Vehicle type'), 'vehicle type');
+      this.set(d, pn, 'y0', ignYear(specOf(db, 'Year from')), 'years');
+      this.set(d, pn, 'y1', ignYear(specOf(db, 'Year to')), 'years');
+    }
+    if (HAS_APPS) {
+      const f = db.apps.map(a => [a.make, ignModel(a.make, a.model), a.years]);
+      if (!same(d.f, f)) {
+        const was = new Set((d.f || []).map(x => x.join('|'))), now = new Set(f.map(x => x.join('|')));
+        const added = f.filter(x => !was.has(x.join('|'))).map(x => x.join(' ')), removed = [...was].filter(x => !now.has(x)).length;
+        R.vehiclesAdded += added.length; R.vehiclesRemoved += removed;
+        if (added.length || removed) log(this.dir, pn, 'vehicles', { added, removed });
+        d.f = f;
+      }
+    }
+    if (HAS_SPECS && HAS_APPS) {
+      const mk = [...new Set(specOf(db, 'Vehicle makes').split(' / ').map(t).filter(Boolean).concat(db.apps.map(a => a.make).filter(Boolean)))].sort((a, b) => a.localeCompare(b));
+      this.set(d, pn, 'mk', mk, 'vehicle makes');
+    }
+    const i = fs.existsSync(path.join(ROOT, this.dir, 'img', pn + '.webp')) ? 1 : 0;
+    if (d.i !== i) d.i = i;   // picture added or removed in img/
+  },
+  numbers(d, pn, db) {
+    const a = listField(this.dir, d, pn, 'oem', db.oe, 'OE', false);
+    const want = db.comp.map(c => [isGeneric(c.brand) ? 'Cross reference' : c.brand, c.num]);
+    if (same(d.x, want)) return a;
+    const m = merge((d.x || []).map(x => ({ s: x, key: ck(x[1]) })), want.map(w => ({ num: w[1], brand: w[0] })));
+    noteNums(this.dir, pn, 'cross-reference', m);
+    d.x = want; return true;
+  },
+  create(db) { const d = { p: db.pn, pins: '', mod: '', seg: '', mk: [], y0: '', y1: '', oem: [], x: [], f: [], i: 0 }; this.fields(d, db.pn, db); return [d]; },
+  finish() {   // retired numbers (status not Active, with "Replaced by") lead visitors to the replacement
+    const sup = {};
+    for (const db of Object.values(DB)) if (this.subs.includes(db.sub) && db.status !== 'Active' && specOf(db, 'Replaced by')) sup[db.pn] = specOf(db, 'Replaced by');
+    if (!same(Object.entries(this.SUP).sort(), Object.entries(sup).sort())) {
+      log(this.dir, '', 'retired numbers', { from: this.SUP, to: sup });
+      for (const k of Object.keys(this.SUP)) delete this.SUP[k];
+      Object.assign(this.SUP, sup);
+    }
+    if ((R.pages[this.dir] || {}).changes && snap.at) {
+      const up = new Date(snap.at).toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' });
+      if (this.META.updated !== up) this.META.updated = up;
+    }
+  },
+});
+
 // ---------- run every page
 const onSite = new Set(), out = [], counts = {};
+const ONLY = process.env.PUBLISH_ONLY ? process.env.PUBLISH_ONLY.split(',') : null;   // testing: only these page folders
+if (ONLY) PAGES.splice(0, PAGES.length, ...PAGES.filter(A => ONLY.includes(A.dir)));
 for (const A of PAGES) {
   const pg = new Page(A.dir), list = A.load(pg), before = list.length;
   const ctx = { replace(oldRows, newRows) { const i = list.indexOf(oldRows[0]); for (const r of oldRows) list.splice(list.indexOf(r), 1); list.splice(i, 0, ...newRows); } };
