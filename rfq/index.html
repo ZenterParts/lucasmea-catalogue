@@ -62,7 +62,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
 </head>
 <body>
 <header class="lx-head">
-  <a class="lx-home" href="/" aria-label="Lucas online catalogues home"><img src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
+  <a class="lx-home" href="https://www.lucasmeaparts.com" aria-label="Lucas online catalogues home"><img src="/assets/lucas-logo.png" alt="Lucas" width="992" height="200"></a>
   <p class="lx-tag bar-title">Inquiry</p>
 </header>
 
@@ -229,7 +229,7 @@ footer .bar{height:24px; background:var(--lucas-green);}
     }
     if (!CUSTOMER && req.items.length) staffInit(req, partsTable);
   }).catch(function(err){
-    app.innerHTML = '<div class="wrap"><div class="error"><h1>This request link could not be opened</h1><p>' + esc(err.message) + '</p><a class="btn" href="/">Go to the catalogues</a></div></div>';
+    app.innerHTML = '<div class="wrap"><div class="error"><h1>This request link could not be opened</h1><p>' + esc(err.message) + '</p><a class="btn" href="https://www.lucasmeaparts.com">Go to the catalogues</a></div></div>';
   });
 })();
 </script>
